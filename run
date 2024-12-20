@@ -1,0 +1,17 @@
+#! /bin/zsh
+
+function on_close() {
+  docker kill expl
+}
+
+trap on_close SIGINT
+trap on_close SIGTERM
+trap on_close SIGQUIT
+trap on_close SIGHUP
+
+docker start expl 
+
+(
+  trap on_close EXIT
+  docker exec -it expl /bin/bash
+)
