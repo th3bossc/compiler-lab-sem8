@@ -2,3 +2,4 @@ lex.yy.c
 y.tab.c
 a.out
 y.tab.h
+.clang-format
