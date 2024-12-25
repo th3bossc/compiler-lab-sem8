@@ -1,0 +1,7 @@
+#! /bin/bash
+
+filename=$1
+
+yacc filename
+gcc y.tab.c
+./a.out

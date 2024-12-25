@@ -1,0 +1,75 @@
+10 Examples That Should Be Accepted
+
+if (true) then 1 else 2 endif  
+Depth 1
+
+if (3 < 5) then 7 endif  
+Depth 1
+
+if (false) then if (4 > 4) then 8 else 9 endif else 6 endif  
+Depth 2
+
+if (1 != 2) then 3 else if (5 > 3) then 4 endif endif  
+Depth 2
+
+if (7 == 7) then if (2 > 1) then if (6 < 6) then 1 endif else 2 endif endif  
+Depth 3
+
+if (false) then if (3 < 4) then if (2 > 1) then 5 else 6 endif endif else 9 endif  
+Depth 3
+
+if (5 < 5) then 0 endif  
+Depth 1
+
+if (true) then 2 else if (false) then 3 else 4 endif endif  
+Depth 2
+
+if (1 != 1) then 5 else if (2 < 3) then if (4 > 1) then 6 endif endif endif  
+Depth 3
+
+if (true) then if (false) then 0 endif else 7 endif  
+Depth 2
+
+
+
+10 Examples That Should Fail
+  
+if (3 < 5) then endif
+Depth 1 
+(Missing statements in `then` branch)
+
+if (true) then 1 else endif
+Depth 1
+(Missing statement in `else` branch)
+
+if (3 < ) then 5 else 2 endif 
+Depth 1
+(Invalid condition syntax)
+
+if (true) then 1 
+Depth 1
+(Missing `endif`)
+
+if (1 != 2) then if (5 > 3) then 4 else endif
+Depth 2
+(Nested `else` missing statement)
+
+if (false) then if (3 < 4) then 5 endif endif else 9 endif
+Depth 2 
+(Unmatched `else` for nested `if`)
+
+if (true) then if (false) then 3 endif
+Depth 1
+(Unmatched `endif` for the outer `if`)
+
+if (4 ! 5) then 7 else 8 endif
+Depth 1
+(Invalid operator `!`)
+
+if (true) then 2 else if (false) then endif endif
+Depth 2
+(Missing statements for inner `if` branches)
+
+if (true then 1 else 2 endif 
+Depth 1
+(Missing closing parenthesis in condition)  
