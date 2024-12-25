@@ -13,5 +13,5 @@ docker start expl
 
 (
   trap on_close EXIT
-  docker exec -it expl /bin/bash
+  docker exec -it expl /bin/zsh
 )

@@ -3,3 +3,4 @@ y.tab.c
 a.out
 y.tab.h
 .clang-format
+dotfiles/
