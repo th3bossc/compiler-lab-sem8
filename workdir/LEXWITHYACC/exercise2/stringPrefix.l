@@ -12,7 +12,7 @@ string [a-zA-Z]+
 %%
 
 {string} {
-    strcpy(yylval.sVal, yytext);
+    yylval.sVal = strdup(yytext);
     return STRING;    
 }
 
