@@ -1,0 +1,43 @@
+0
+2056
+0
+0
+0
+0
+0
+0
+BRKP
+MOV     R0, 3
+MOV     R1, 2
+ADD     R0, R1
+
+
+MOV     R2, 5
+PUSH    R2
+MOV     R2, -2
+PUSH    R2
+PUSH    R0
+PUSH    R2
+PUSH    R2
+INT     7
+
+POP     R0
+POP     R0
+POP     R0
+POP     R0
+POP     R0
+
+
+MOV     R2, 10
+PUSH    R2
+PUSH    R0
+PUSH    R0
+PUSH    R0
+PUSH    R0
+INT     10
+
+POP     R0
+POP     R0
+POP     R0
+POP     R0
+POP     R0
