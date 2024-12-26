@@ -39,5 +39,12 @@ RUN cd /home/expl \
   && cd ./xsm_expl \
   && make
 
+RUN cd /home/expl/xsm_expl \
+  && echo "#!/bin/bash \n" | cat - xsm > temp \
+  && mv temp xsm
+
+RUN cd /home/expl/xsm_expl \
+  && rm -rf .git
+
 WORKDIR /home/expl/xsm_expl
 
