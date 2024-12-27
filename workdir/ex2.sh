@@ -1,3 +1,5 @@
+#! /bin/bash
+
 yacc -d parser_ex2.y
 lex lex.l
 

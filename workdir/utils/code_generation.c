@@ -31,7 +31,6 @@ reg_index_t generate_arithmetic_code(node_t* node, FILE* target_file) {
     char op = (node->data).c_val;
     reg_index_t l_val_reg = generate_arithmetic_code(node->left, target_file);
     reg_index_t r_val_reg = generate_arithmetic_code(node->right, target_file);
-    printf("op: %d\n", op);
     switch (op) {
         case '+':
             fprintf(target_file, "ADD R%d, R%d\n", l_val_reg, r_val_reg);
