@@ -1,7 +1,0 @@
-ABC
-DEF
-DEFDFDF
-hello
-AND
-APT
-DNF
