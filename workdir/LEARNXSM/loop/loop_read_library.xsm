@@ -1,0 +1,73 @@
+0
+2056
+0
+0
+0
+0
+0
+0
+BRKP
+
+MOV     R3 , 0
+MOV     SP , 4097
+
+PUSH    R3
+
+MOV     R0, "Read"
+PUSH    R0 
+MOV     R0, -1
+PUSH    R0 
+MOV     R0, 4096
+PUSH    R0  
+PUSH    R0 
+PUSH    R0  
+CALL    0
+
+POP     R0
+POP     R0
+POP     R0
+POP     R0
+POP     R0
+
+POP     R3
+
+MOV     R2, [4096]
+MOV     R6, 0
+EQ      R2, R6
+JNZ     R2, 2108
+
+MOV     R4, [4096]
+ADD     R3, R4
+
+JMP     2062
+
+
+
+
+
+MOV     R0, "Write"
+PUSH    R0
+MOV     R0, -2 
+PUSH    R0
+PUSH    R3 
+PUSH    R0 
+PUSH    R0
+CALL    0
+
+POP     R0
+POP     R0
+POP     R0
+POP     R0
+POP     R0
+
+
+
+
+
+MOV     R2, "Exit"
+PUSH    R2
+PUSH    R0
+PUSH    R0
+PUSH    R0
+PUSH    R0
+CALL    0

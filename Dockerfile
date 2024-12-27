@@ -37,14 +37,19 @@ USER expl
 RUN cd /home/expl \
   && git clone https://github.com/silcnitc/xsm_expl.git \
   && cd ./xsm_expl \
-  && make
+  && make \
+  && cd ./xfs-interface \
+  && ./init
 
 RUN cd /home/expl/xsm_expl \
-  && echo "#!/bin/bash \n" | cat - xsm > temp \
+  && echo "#! /bin/bash \n" | cat - xsm > temp \
   && mv temp xsm
 
 RUN cd /home/expl/xsm_expl \
   && rm -rf .git
+
+RUN cd /home/expl/xsm_expl \
+  && chmod +x xsm
 
 WORKDIR /home/expl/xsm_expl
 
