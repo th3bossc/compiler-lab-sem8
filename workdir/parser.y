@@ -27,7 +27,7 @@ FILE* fp = NULL;
 
 %%
 
-start       : BEGIN_BLOCK stmt_list END_BLOCK   { printf("Parse Complete\nPrefix: "); print_prefix($<node>2); printf("\n"); generate_code($<node>2, fp); exit(0); }
+start       : BEGIN_BLOCK stmt_list END_BLOCK   { printf("Parse Complete\nPrefix: "); print_prefix($<node>2); printf("\n"); generate_code($<node>2, fp); evaluate_node($<node>2); exit(0); }
             ;
 
 stmt_list   : stmt_list stmt                    { $<node>$ = create_connector_node($<node>1, $<node>2); }
