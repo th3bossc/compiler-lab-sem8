@@ -11,29 +11,45 @@
 %%
 
 [0-9]+ {
-    node_value_t val;
-    val.n_val = atoi(yytext);
-    node_t* node = create_node(val, false);
-    yylval.node = node;
-    
+    yylval.val = atoi(yytext);
     return NUM;
 }
 
-\n {
-    return *yytext;
-}
-
 [+\-*\/]  {
-    node_value_t val;
-    val.c_val = *yytext;
-    node_t* node = create_node(val, true);
-    yylval.node = node;
+    yylval.op = *yytext;
 
     return *yytext;
 }
 
-[()] {
+[()=] {
     return *yytext;
 }
+
+; {
+    return PUNCTUATION;
+}
+
+[a-z] {
+    yylval.var_name = *yytext;
+    return ID;
+}
+
+begin {
+    return BEGIN_BLOCK;
+}
+
+end {
+    return END_BLOCK;
+}
+
+Write {
+    return WRITE;
+}
+
+Read {
+    return READ;
+}
+
+
 
 %%
