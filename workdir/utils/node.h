@@ -48,7 +48,7 @@ node_t* create_assignment_node(char var_name, node_t* expr);
 
 int get_addr(char var_name);
 void destroy_node(node_t* node);
-int evaluate_node(node_t* node);
+void evaluate_node(node_t* node);
 void print_prefix(node_t* node);
 void print_postfix(node_t* node);
 

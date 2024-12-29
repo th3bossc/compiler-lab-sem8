@@ -72,25 +72,21 @@ void destroy_node(node_t* node) {
     free(node);
 }
 
-int evaluate_helper(node_t* node, int* vars) {
-    if (node->node_type == NODE_TYPE_CONNECTOR) {
-        evaluate_helper(node->left, vars);
-        evaluate_helper(node->right, vars);
-    }
-    else if (node->node_type == NODE_TYPE_WRITE) {
-        printf("%d\n", evaluate_helper(node->left, vars));
-    }
-    else if (node->node_type == NODE_TYPE_READ) {
-        int input;
-        scanf("%d", &input);
-        vars[node->left->data.var_name - 'a'] = input;
-    }
-    else if (node->node_type == NODE_TYPE_OPERATOR) {
-        int l_val = evaluate_helper(node->left, vars);
-        int r_val = evaluate_helper(node->right, vars);
 
-        int answer = 0;
-        switch(node->data.c_val) {
+int evaluate_expression(node_t* node, int* vars) {
+    if (!node)
+        return 0;
+
+    if (node->node_type == NODE_TYPE_VALUE)
+        return node->data.n_val;
+    else if (node->node_type == NODE_TYPE_ID)
+        return vars[node->data.var_name - 'a'];
+    else if (node->node_type == NODE_TYPE_OPERATOR) {
+        char op = node->data.c_val;
+        int l_val = evaluate_expression(node->left, vars);
+        int r_val = evaluate_expression(node->right, vars);
+        int answer;
+        switch (op) {
             case '+':
                 answer = l_val + r_val;
                 break;
@@ -106,23 +102,37 @@ int evaluate_helper(node_t* node, int* vars) {
         }
         return answer;
     }
+}
+
+void evaluate_helper(node_t* node, int* vars) {
+    if (!node)
+        return;
+
+    if (node->node_type == NODE_TYPE_CONNECTOR) {
+        evaluate_helper(node->left, vars);
+        evaluate_helper(node->right, vars);
+    }
+    else if (node->node_type == NODE_TYPE_WRITE) {
+        int expr_output = evaluate_expression(node->left, vars);
+        printf("%d\n", expr_output);
+    }
+    else if (node->node_type == NODE_TYPE_READ) {
+        int input;
+        scanf("%d", &input);
+        vars[node->left->data.var_name - 'a'] = input;
+    }
     else if (node->node_type == NODE_TYPE_ASSIGN) {
-        int expr_output = evaluate_helper(node->right, vars);
-        vars[node->left->data.var_name-'a'] = expr_output;
+        int expr_output = evaluate_expression(node->right, vars);
+        vars[node->left->data.var_name - 'a'] = expr_output;
     }
-    else if (node->node_type == NODE_TYPE_VALUE) {
-        return node->data.n_val;
-    }
-    else if (node->node_type == NODE_TYPE_ID) {
-        return vars[node->data.var_name - 'a'];
-    }
-    return 0;
+    else if (node->node_type == NODE_TYPE_OPERATOR || node->node_type == NODE_TYPE_VALUE || node->node_type == NODE_TYPE_ID)
+        return;
 }
 
 
-int evaluate_node(node_t* node) {
+void evaluate_node(node_t* node) {
     int vars[26];
-    return evaluate_helper(node, vars);
+    evaluate_helper(node, vars);
 }
 
 void print_prefix(node_t* node) {
