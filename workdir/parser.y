@@ -10,7 +10,9 @@ extern FILE *yyin;
 void yyerror(const char*);
 int yylex();
 void generate_code(node_t*, FILE*);
-FILE* fp = NULL;
+FILE* output_path = NULL;
+bool evaluate_mode = false;
+void parser_complete_handler(node_t*, FILE*);
 %}
 
 %token NUM ID BEGIN_BLOCK END_BLOCK WRITE READ PUNCTUATION
@@ -27,7 +29,7 @@ FILE* fp = NULL;
 
 %%
 
-start       : BEGIN_BLOCK stmt_list END_BLOCK   { printf("Parse Complete\nPrefix: "); print_prefix($<node>2); printf("\n"); generate_code($<node>2, fp); evaluate_node($<node>2); exit(0); }
+start       : BEGIN_BLOCK stmt_list END_BLOCK   { printf("Parse Complete\nPrefix: "); print_prefix($<node>2); printf("\n"); parser_complete_handler($<node>2, output_path); exit(0); }
             ;
 
 stmt_list   : stmt_list stmt                    { $<node>$ = create_connector_node($<node>1, $<node>2); }
@@ -73,20 +75,38 @@ void generate_code(node_t* node, FILE* fp) {
     fprintf(fp, "MOV SP, 4122\n");
     generate_statement_structure(node, fp);
     exit_program(fp);
+}
 
+void parser_complete_handler(node_t* node, FILE* fp) {
+    if (evaluate_mode) {
+        evaluate_node(node);
+    }
+    else {
+        generate_code(node, fp);
+    }
 }
 
 
 int main(int argc, char* argv[]) {
-    if (argc > 2) {
-        FILE* input_fp = fopen(argv[1], "r");
-        fp = fopen(argv[2], "w");
-        yyin = input_fp;
-    }
-    else 
-        fp = fopen("output.xsm", "w");
     reset_registers();
 
+    for (int i = 0; i < argc; i++) {
+        if (strcmp(argv[i], "--input") == 0 && (i+1) < argc) {
+            FILE* fp = fopen(argv[i+1], "r");
+            if (fp) {
+                yyin = fp;
+            }
+        }
+        else if (strcmp(argv[i], "--output") == 0 && (i+1) < argc) {
+            FILE* fp = fopen(argv[i+1], "w");
+            if (fp) {
+                output_path = fp;
+            }
+        }
+        else if (strcmp(argv[i], "--evaluate") == 0) {
+            evaluate_mode = true;
+        }
+    }
 
     yyparse();
     return 0;
