@@ -42,11 +42,11 @@ end {
     return END_BLOCK;
 }
 
-Write {
+write {
     return WRITE;
 }
 
-Read {
+read {
     return READ;
 }
 

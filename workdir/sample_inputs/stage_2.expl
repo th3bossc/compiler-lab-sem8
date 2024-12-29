@@ -1,6 +1,6 @@
-begin 
-Read(a);
-Read(b);
+begin
+read(a);
+read(b);
 d = a + 2*b;
-Write(a+d);
+write(a+d);
 end
