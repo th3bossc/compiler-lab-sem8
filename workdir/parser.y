@@ -4,8 +4,8 @@
 #include <stdbool.h>
 #include <string.h>
 
-#include "./utils/node.h"
-#include "./utils/code_generation.h"
+#include "core/node.h"
+#include "core/code_generation.h"
 extern FILE *yyin;
 void yyerror(const char*);
 int yylex();
