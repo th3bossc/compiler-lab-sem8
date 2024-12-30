@@ -226,6 +226,10 @@ void evaluate_helper(node_t* node, int* vars) {
         vars[node->left->data.var_name - 'a'] = expr_output;
     }
     else if (node->node_type == NODE_TYPE_IF) {
+        if (node->left->value_type != NODE_VALUE_BOOL) {
+            perror("{node:evaluate_helper} IF condn is not a boolean value");
+            exit(1);
+        }
         int cond_output = evaluate_expression(node->left, vars);
         if (cond_output) {
             evaluate_helper(node->right, vars);
@@ -233,7 +237,11 @@ void evaluate_helper(node_t* node, int* vars) {
     }
     else if (node->node_type == NODE_TYPE_IFELSE) {
         node_t* if_node = node->left;
-        int cond_output = evaluate_bool_expression(if_node->left, vars);
+        if (if_node->left->value_type != NODE_VALUE_BOOL) {
+            perror("{node:evaluate_helper} IFELSE condn is not a boolean value");
+            exit(1);
+        }
+        int cond_output = evaluate_expression(if_node->left, vars);
         if (cond_output) {
             evaluate_helper(if_node->right, vars);
         }
@@ -242,6 +250,10 @@ void evaluate_helper(node_t* node, int* vars) {
         }
     }
     else if (node->node_type == NODE_TYPE_WHILE) {
+        if (node->left->value_type != NODE_VALUE_BOOL) {
+            perror("{node:evaluate_helper} WHILE condn is not a boolean value");
+            exit(1);
+        }
         while(evaluate_expression(node->left, vars)) {
             evaluate_helper(node->right, vars);
         }

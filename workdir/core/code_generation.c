@@ -1,4 +1,4 @@
-#include "./code_generation.h"
+#include "code_generation.h"
 
 reg_index_t get_free_register() {
     for (reg_index_t i = 0; i < NUM_REGISTERS; i++) {
@@ -12,6 +12,16 @@ reg_index_t get_free_register() {
     exit(1);
 }
 
+label_index_t get_label() {
+    used_labels++;
+    return used_labels;
+}
+
+void reset_labels() {
+    used_labels = 0;
+}
+
+
 
 void free_register(reg_index_t reg) {
     free_registers[reg] = true;
@@ -19,6 +29,96 @@ void free_register(reg_index_t reg) {
 
 int get_addr(char var_name) {
     return (4096 + var_name - 'a');
+}
+
+reg_index_t generate_expression_code(node_t* node, FILE* target_file) {
+    if (node->value_type == NODE_VALUE_INT) {
+        return generate_arithmetic_code(node, target_file);
+    }
+    else if (node->value_type == NODE_VALUE_BOOL) {
+        return generate_boolean_code(node, target_file);
+    }
+    else if (node->value_type == NODE_VALUE_NOT_SET) {
+        node_t* l_val = node->left;
+        node_t* r_val = node->right;
+        if (!l_val || !r_val) {
+            perror("{code_generation:generate_expression_code} something went wrong");
+            exit(1);
+        }
+
+        if (l_val->value_type != r_val->value_type) {
+            perror("{code_generation.generate_expression_code}: mismatched types");
+            exit(1);
+        }
+
+        if (l_val->value_type == NODE_VALUE_INT) {
+            node->value_type = NODE_VALUE_INT;
+            return generate_arithmetic_code(node, target_file);
+        }
+        else if (l_val->value_type == NODE_VALUE_BOOL) {
+            node->value_type = NODE_VALUE_BOOL;
+            return generate_boolean_code(node, target_file);
+        }
+    }
+}
+
+reg_index_t generate_boolean_code(node_t* node, FILE* target_file) {
+    if (!node) {
+        return -1;
+    }
+
+    if (node->node_type == NODE_TYPE_VALUE) {
+        reg_index_t free_reg = get_free_register();
+
+        fprintf(target_file, "MOV R%d, %d\n", free_reg, (node->data).val);
+        return free_reg;
+    }
+    else if (node->node_type == NODE_TYPE_ID) {
+        reg_index_t free_reg = get_free_register();
+        load_addr_to_register(free_reg, get_addr(node->data.var_name), target_file);
+        return free_reg;
+
+    }
+
+    char relop[2];
+    strcpy(relop, node->data.relop);
+
+
+    reg_index_t l_val_reg = generate_expression_code(node->left, target_file);
+    reg_index_t r_val_reg = generate_expression_code(node->right, target_file);
+
+    if (strcmp(relop, ">") == 0) {
+        fprintf(target_file, "GT R%d, R%d\n", l_val_reg, r_val_reg);
+        free_register(r_val_reg);
+        return l_val_reg;
+    }
+    else if (strcmp(relop, ">=") == 0) {
+        fprintf(target_file, "GE R%d, R%d\n", l_val_reg, r_val_reg);
+        free_register(r_val_reg);
+        return l_val_reg;
+    } 
+    else if (strcmp(relop, "<") == 0) {
+        fprintf(target_file, "LT R%d, R%d\n", l_val_reg, r_val_reg);
+        free_register(r_val_reg);
+        return l_val_reg;
+    } 
+    else if (strcmp(relop, "<=") == 0) {
+        fprintf(target_file, "LE R%d, R%d\n", l_val_reg, r_val_reg);
+        free_register(r_val_reg);
+        return l_val_reg;
+    } 
+    else if (strcmp(relop, "==") == 0) {      
+        fprintf(target_file, "EQ R%d, R%d\n", l_val_reg, r_val_reg);
+        free_register(r_val_reg);
+        return l_val_reg;  
+    } 
+    else if (strcmp(relop, "!=") == 0) {
+        fprintf(target_file, "NE R%d, R%d\n", l_val_reg, r_val_reg);
+        free_register(r_val_reg);
+        return l_val_reg;
+    }  
+
+    return -1;
 }
 
 reg_index_t generate_arithmetic_code(node_t* node, FILE* target_file) {
@@ -39,8 +139,8 @@ reg_index_t generate_arithmetic_code(node_t* node, FILE* target_file) {
     }
 
     char op = (node->data).op;
-    reg_index_t l_val_reg = generate_arithmetic_code(node->left, target_file);
-    reg_index_t r_val_reg = generate_arithmetic_code(node->right, target_file);
+    reg_index_t l_val_reg = generate_expression_code(node->left, target_file);
+    reg_index_t r_val_reg = generate_expression_code(node->right, target_file);
     switch (op) {
         case '+':
             fprintf(target_file, "ADD R%d, R%d\n", l_val_reg, r_val_reg);
@@ -71,7 +171,7 @@ void generate_assignment_code(node_t* node, FILE* target_file) {
 
     node_t* id_node = node->left;
     int addr = get_addr(id_node->data.op);
-    reg_index_t expr_output = generate_arithmetic_code(node->right, target_file);
+    reg_index_t expr_output = generate_expression_code(node->right, target_file);
     store_register_to_addr(expr_output, addr, target_file);
     free_register(expr_output);
 }
@@ -89,7 +189,7 @@ reg_index_t generate_print_code(node_t* node, FILE* target_file) {
         ret_val = print_addr(addr, target_file);
     }
     else if (node->left->node_type == NODE_TYPE_OPERATOR) {
-        reg_index_t expr_output = generate_arithmetic_code(node->left, target_file);
+        reg_index_t expr_output = generate_expression_code(node->left, target_file);
         ret_val = print_register(expr_output, target_file);
         free_register(expr_output);
     }
@@ -110,6 +210,80 @@ reg_index_t generate_read_code(node_t* node, FILE* target_file) {
     return ret_val;
 }
 
+void generate_if_code(node_t* node, FILE* target_file) {
+    if (!node || !(node->left) || !(node->right)) {
+        perror("{code_generation:generate_if_code} Something went wrong");
+        exit(1);
+    }
+    node_t* cond_node = node->left;
+    node_t* body_node = node->right;
+
+    if (cond_node->value_type != NODE_VALUE_BOOL) {
+        perror("{node:generate_if_code} IF condn doesn't return a boolean value");
+        exit(1);
+    }
+
+    label_index_t exit_if_label = get_label();
+
+    reg_index_t condition_output = generate_expression_code(cond_node, target_file);
+    fprintf(target_file, "JZ R%d, L%d\n", condition_output, exit_if_label);
+    generate_statement_structure(body_node, target_file);
+    fprintf(target_file, "L%d:\n", exit_if_label);
+    free_register(condition_output);
+}
+
+void generate_ifelse_code(node_t* node, FILE* target_file) {
+    if (!node || !(node->left) || !(node->right) || !(node->left->left) || !(node->left->right)) {
+        perror("{code_generation:generate_if_code} Something went wrong");
+        exit(1);
+    }
+    node_t* cond_node = node->left->left;
+    node_t* if_body_node = node->left->right;
+    node_t* else_body_node = node->right;
+
+    if (cond_node->value_type != NODE_VALUE_BOOL) {
+        perror("{node:generate_if_code} IF condn doesn't return a boolean value");
+        exit(1);
+    }
+
+    label_index_t else_body_label = get_label();
+    label_index_t exit_if_label = get_label();
+
+    reg_index_t condition_output = generate_expression_code(cond_node, target_file);
+    fprintf(target_file, "JZ R%d, L%d\n", condition_output, else_body_label);
+    generate_statement_structure(if_body_node, target_file);
+    fprintf(target_file, "JMP L%d\n", exit_if_label);
+    fprintf(target_file, "L%d:\n", else_body_label);
+    generate_statement_structure(else_body_node, target_file);
+    fprintf(target_file, "L%d:\n", exit_if_label);
+    free_register(condition_output);
+}
+
+void generate_while_code(node_t* node, FILE* target_file) {
+    if (!node || !(node->left) || !(node->right)) {
+        perror("{code_generation:generate_if_code} Something went wrong");
+        exit(1);
+    }
+    node_t* cond_node = node->left;
+    node_t* body_node = node->right;
+
+    if (cond_node->value_type != NODE_VALUE_BOOL) {
+        perror("{node:generate_if_code} IF condn doesn't return a boolean value");
+        exit(1);
+    }
+
+    label_index_t condn_label = get_label();
+    label_index_t exit_while_label = get_label();
+
+    fprintf(target_file, "L%d:\n", condn_label);
+    reg_index_t condition_output = generate_expression_code(cond_node, target_file);
+    fprintf(target_file, "JZ R%d, L%d\n", condition_output, exit_while_label);
+    generate_statement_structure(body_node, target_file);
+    fprintf(target_file, "JMP L%d\n", condn_label);
+    fprintf(target_file, "L%d:\n", exit_while_label);
+    free_register(condition_output);
+} 
+
 
 void generate_statement_structure(node_t* node, FILE* target_file) {
     if (!node)
@@ -119,9 +293,6 @@ void generate_statement_structure(node_t* node, FILE* target_file) {
         generate_statement_structure(node->left, target_file);
         generate_statement_structure(node->right, target_file);
     }
-    else if (node->node_type == NODE_TYPE_ASSIGN) {
-        generate_assignment_code(node, target_file);
-    } 
     else if (node->node_type == NODE_TYPE_WRITE) {
         reg_index_t ret_val = generate_print_code(node, target_file);
         free_register(ret_val);
@@ -130,7 +301,19 @@ void generate_statement_structure(node_t* node, FILE* target_file) {
         reg_index_t ret_val = generate_read_code(node, target_file);
         free_register(ret_val);
     }
-    else if (node->node_type == NODE_TYPE_OPERATOR || node->node_type == NODE_TYPE_VALUE || node->node_type == NODE_TYPE_ID)
+    else if (node->node_type == NODE_TYPE_ASSIGN) {
+        generate_assignment_code(node, target_file);
+    } 
+    else if (node->node_type == NODE_TYPE_IF) {
+        generate_if_code(node, target_file);
+    }
+    else if (node->node_type == NODE_TYPE_IFELSE) {
+        generate_ifelse_code(node, target_file);
+    }
+    else if (node->node_type == NODE_TYPE_WHILE) {
+        generate_while_code(node, target_file);
+    }
+    else if (node->node_type == NODE_TYPE_OPERATOR || node->node_type == NODE_TYPE_VALUE || node->node_type == NODE_TYPE_ID || node->node_type == NODE_TYPE_RELOP)
         return;
 }
 
@@ -142,8 +325,8 @@ void reset_registers() {
 }
 
 
+
 reg_index_t print_register(reg_index_t data, FILE* target_file) {
-    fprintf(target_file, "\n\n");
     reg_index_t free_reg = get_free_register();
 
     fprintf(target_file, "MOV R%d, \"Write\"\nPUSH R%d\n", free_reg, free_reg);
@@ -158,12 +341,10 @@ reg_index_t print_register(reg_index_t data, FILE* target_file) {
     fprintf(target_file, "POP R%d\nPOP R%d\nPOP R%d\nPOP R%d\nPOP R%d\n", ret_val, free_reg, free_reg, free_reg, free_reg);
 
     free_register(free_reg);
-    fprintf(target_file, "\n\n");
     return ret_val;
 }
 
 reg_index_t print_addr(int addr, FILE* target_file) {
-    fprintf(target_file, "\n\n");
     reg_index_t free_reg = get_free_register();
     
     load_addr_to_register(free_reg, addr, target_file);
@@ -184,7 +365,6 @@ void store_register_to_addr(reg_index_t reg, int addr, FILE* target_file) {
 
 
 reg_index_t read_into_addr(int addr, FILE* target_file) {
-    fprintf(target_file, "\n\n");
     reg_index_t free_reg = get_free_register();
 
     fprintf(target_file, "MOV R%d, \"Read\"\nPUSH R%d\n", free_reg, free_reg);
@@ -198,13 +378,11 @@ reg_index_t read_into_addr(int addr, FILE* target_file) {
     fprintf(target_file, "POP R%d\nPOP R%d\nPOP R%d\nPOP R%d\nPOP R%d\n", ret_val, free_reg, free_reg, free_reg, free_reg);
 
     free_register(free_reg);
-    fprintf(target_file, "\n\n");
     return ret_val;
 }
 
 
 void exit_program(FILE* target_file) {
-    fprintf(target_file, "\n\n");
     reg_index_t free_reg = get_free_register();
 
     fprintf(target_file, "MOV R%d, \"Exit\"\nPUSH R%d\n", free_reg, free_reg);
@@ -219,9 +397,19 @@ void exit_program(FILE* target_file) {
     fprintf(target_file, "POP R%d\nPOP R%d\nPOP R%d\nPOP R%d\nPOP R%d\n", ret_val, free_reg, free_reg, free_reg, free_reg);
 
     free_register(free_reg);
-    fprintf(target_file, "\n\n");
 }
 
 void generate_headers(FILE* target_file) {
-    fprintf(target_file, "0\n2056\n0\n0\n0\n0\n0\n0\n\n");
+    fprintf(target_file, "0\n2056\n0\n0\n0\n0\n0\n0\n");
+}
+
+
+void generate_program(node_t* body, FILE* target_file) {
+    reset_registers();
+    reset_labels();
+
+    generate_headers(target_file);
+    fprintf(target_file, "MOV SP, 4122\n");
+    generate_statement_structure(body, target_file);
+    exit_program(target_file);
 }

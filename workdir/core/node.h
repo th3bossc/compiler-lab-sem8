@@ -1,16 +1,15 @@
+#ifndef NODE_H
+#define NODE_H
+
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-#ifndef NODE_H
-#define NODE_H
-
-typedef struct node_s node_t;
-typedef union node_value_s node_value_t;
 typedef enum node_type_s node_type_t;
 typedef enum node_value_type_s node_value_type_t;
-
+typedef struct node_s node_t;
+typedef union node_value_s node_value_t;
 
 enum node_type_s {
     NODE_TYPE_WRITE,

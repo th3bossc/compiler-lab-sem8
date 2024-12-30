@@ -4,7 +4,6 @@
 #include <stdbool.h>
 #include <string.h>
 
-#include "core/node.h"
 #include "core/code_generation.h"
 extern FILE *yyin;
 void yyerror(const char*);
@@ -20,6 +19,9 @@ void parser_complete_handler(node_t*, FILE*);
 %token WRITE READ PUNCTUATION 
 %token WHILE DO ENDWHILE IF THEN ELSE ENDIF
 %token GT LT GTE LTE EQUALS NOT_EQUALS
+
+%left GT LT GTE LTE
+%left EQUALS NOT_EQUALS
 
 %left '+' '-'
 %left '*' '/'
@@ -60,11 +62,11 @@ stmt_read   : READ '(' ID ')'                   { $<node>$ = create_read_node($<
             ;
 
 
-stmt_if     : IF '(' condn ')' THEN stmt_list ELSE stmt_list ENDIF  { $<node>$ = create_ifelse_node($<node>3, $<node>6, $<node>8); }
-            | IF '(' condn ')' THEN stmt_list ENDIF                 { $<node>$ = create_ifelse_node($<node>3, $<node>6, NULL); }
+stmt_if     : IF '(' expr ')' THEN stmt_list ELSE stmt_list ENDIF  { $<node>$ = create_ifelse_node($<node>3, $<node>6, $<node>8); }
+            | IF '(' expr ')' THEN stmt_list ENDIF                 { $<node>$ = create_ifelse_node($<node>3, $<node>6, NULL); }
             ;
 
-stmt_while  : WHILE '(' condn ')' DO stmt_list ENDWHILE   { $<node>$ = create_while_node($<node>3, $<node>6); }
+stmt_while  : WHILE '(' expr ')' DO stmt_list ENDWHILE   { $<node>$ = create_while_node($<node>3, $<node>6); }
             ;
 
 
@@ -75,9 +77,7 @@ expr        : expr '+' expr                     { $<node>$ = create_operator_nod
             | '(' expr ')'                      { $<node>$ = $<node>2; }
             | NUM                               { $<node>$ = create_num_node($<val>1); }
             | ID                                { $<node>$ = create_id_node($<var_name>1); }
-            ;
-
-condn       : expr GT expr                      { $<node>$ = create_relop_node(">", $<node>1, $<node>3); }
+            | expr GT expr                      { $<node>$ = create_relop_node(">", $<node>1, $<node>3); }
             | expr LT expr                      { $<node>$ = create_relop_node("<", $<node>1, $<node>3); }
             | expr EQUALS expr                  { $<node>$ = create_relop_node("==", $<node>1, $<node>3); }
             | expr NOT_EQUALS expr              { $<node>$ = create_relop_node("!=", $<node>1, $<node>3); }
@@ -91,26 +91,17 @@ void yyerror(const char* s) {
     fprintf(stderr, "\nError: %s\n", s);
 } 
 
-void generate_code(node_t* node, FILE* fp) {
-    generate_headers(fp);
-    fprintf(fp, "MOV SP, 4122\n");
-    generate_statement_structure(node, fp);
-    exit_program(fp);
-}
-
 void parser_complete_handler(node_t* node, FILE* fp) {
     if (evaluate_mode) {
         evaluate_node(node);
     }
     else {
-        generate_code(node, fp);
+        generate_program(node, fp);
     }
 }
 
 
 int main(int argc, char* argv[]) {
-    reset_registers();
-
     for (int i = 0; i < argc; i++) {
         if (strcmp(argv[i], "--input") == 0 && (i+1) < argc) {
             FILE* fp = fopen(argv[i+1], "r");
