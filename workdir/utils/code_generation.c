@@ -28,7 +28,7 @@ reg_index_t generate_arithmetic_code(node_t* node, FILE* target_file) {
     if (node->node_type == NODE_TYPE_VALUE) {
         reg_index_t free_reg = get_free_register();
 
-        fprintf(target_file, "MOV R%d, %d\n", free_reg, (node->data).n_val);
+        fprintf(target_file, "MOV R%d, %d\n", free_reg, (node->data).val);
         return free_reg;
     }
     else if (node->node_type == NODE_TYPE_ID) {
@@ -38,7 +38,7 @@ reg_index_t generate_arithmetic_code(node_t* node, FILE* target_file) {
 
     }
 
-    char op = (node->data).c_val;
+    char op = (node->data).op;
     reg_index_t l_val_reg = generate_arithmetic_code(node->left, target_file);
     reg_index_t r_val_reg = generate_arithmetic_code(node->right, target_file);
     switch (op) {
@@ -70,7 +70,7 @@ void generate_assignment_code(node_t* node, FILE* target_file) {
     }
 
     node_t* id_node = node->left;
-    int addr = get_addr(id_node->data.c_val);
+    int addr = get_addr(id_node->data.op);
     reg_index_t expr_output = generate_arithmetic_code(node->right, target_file);
     store_register_to_addr(expr_output, addr, target_file);
     free_register(expr_output);
@@ -85,7 +85,7 @@ reg_index_t generate_print_code(node_t* node, FILE* target_file) {
     reg_index_t ret_val;
     if (node->left->node_type == NODE_TYPE_ID) {
         node_t* id_node = node->left;
-        int addr = get_addr(id_node->data.c_val);
+        int addr = get_addr(id_node->data.op);
         ret_val = print_addr(addr, target_file);
     }
     else if (node->left->node_type == NODE_TYPE_OPERATOR) {
@@ -105,7 +105,7 @@ reg_index_t generate_read_code(node_t* node, FILE* target_file) {
 
     reg_index_t ret_val;
     node_t* id_node = node->left;
-    int addr = get_addr(id_node->data.c_val);
+    int addr = get_addr(id_node->data.op);
     ret_val = read_into_addr(addr, target_file);
     return ret_val;
 }

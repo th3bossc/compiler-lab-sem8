@@ -34,22 +34,26 @@
     return ID;
 }
 
-begin {
-    return BEGIN_BLOCK;
-}
+begin { return BEGIN_BLOCK; }
+end { return END_BLOCK; }
 
-end {
-    return END_BLOCK;
-}
+write { return WRITE; }
+read { return READ; }
 
-write {
-    return WRITE;
-}
+if { return IF; }
+endif { return ENDIF; }
+then { return THEN; }
+else { return ELSE; }
 
-read {
-    return READ;
-}
+while { return WHILE; }
+endwhile { return ENDWHILE; }
 
+> { return GT; }
+>= { return GTE; }
+< { return LT; }
+<= { return LTE; }
+== { return EQUALS; }
+!= { return NOT_EQUALS; }
 
 
 %%

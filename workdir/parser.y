@@ -15,7 +15,11 @@ bool evaluate_mode = false;
 void parser_complete_handler(node_t*, FILE*);
 %}
 
-%token NUM ID BEGIN_BLOCK END_BLOCK WRITE READ PUNCTUATION
+%token END_BLOCK BEGIN_BLOCK
+%token NUM ID 
+%token WRITE READ PUNCTUATION 
+%token WHILE ENDWHILE IF THEN ELSE ENDIF
+%token GT LT GTE LTE EQUALS NOT_EQUALS
 
 %left '+' '-'
 %left '*' '/'
@@ -36,12 +40,14 @@ stmt_list   : stmt_list stmt                    { $<node>$ = create_connector_no
             | stmt                              { $<node>$ = $<node>1; }
             ;
 
-stmt        : stmt_body PUNCTUATION
+stmt        : stmt_body PUNCTUATION             { $<node>$ = $<node>1; }
             ;
 
 stmt_body   : stmt_assign                       { $<node>$ = $<node>1; }
             | stmt_read                         { $<node>$ = $<node>1; }
             | stmt_write                        { $<node>$ = $<node>1; }
+            | stmt_if                           { $<node>$ = $<node>1; }
+            | stmt_while                        { $<node>$ = $<node>1; }
             ;
 
 stmt_assign : ID '=' expr                       { $<node>$ = create_assignment_node($<var_name>1, $<node>3); }
@@ -54,6 +60,14 @@ stmt_read   : READ '(' ID ')'                   { $<node>$ = create_read_node($<
             ;
 
 
+stmt_if     : IF '(' condn ')' THEN stmt_list ELSE stmt_list ENDIF  { $<node>$ = create_ifelse_node($<node>3, $<node>6, $<node>8); }
+            | IF '(' condn ')' THEN stmt_list ENDIF                 { $<node>$ = create_ifelse_node($<node>3, $<node>6, NULL); }
+            ;
+
+stmt_while  : WHILE '(' condn ')' THEN stmt_list ENDWHILE   { $<node>$ = create_while_node($<node>3, $<node>6); }
+            ;
+
+
 expr        : expr '+' expr                     { $<node>$ = create_operator_node($<op>2, $<node>1, $<node>3); }
             | expr '-' expr                     { $<node>$ = create_operator_node($<op>2, $<node>1, $<node>3); }
             | expr '*' expr                     { $<node>$ = create_operator_node($<op>2, $<node>1, $<node>3); }
@@ -63,6 +77,13 @@ expr        : expr '+' expr                     { $<node>$ = create_operator_nod
             | ID                                { $<node>$ = create_id_node($<var_name>1); }
             ;
 
+condn       : expr GT expr                      { $<node>$ = create_relop_node(">", $<node>1, $<node>3); }
+            | expr LT expr                      { $<node>$ = create_relop_node("<", $<node>1, $<node>3); }
+            | expr EQUALS expr                  { $<node>$ = create_relop_node("==", $<node>1, $<node>3); }
+            | expr NOT_EQUALS expr              { $<node>$ = create_relop_node("!=", $<node>1, $<node>3); }
+            | expr GTE expr                     { $<node>$ = create_relop_node(">=", $<node>1, $<node>3); }
+            | expr LTE expr                     { $<node>$ = create_relop_node("<=", $<node>1, $<node>3); }
+            ;
 
 %%
 
