@@ -18,6 +18,7 @@ void parser_complete_handler(node_t*, FILE*);
 %token NUM ID 
 %token WRITE READ PUNCTUATION 
 %token WHILE DO ENDWHILE IF THEN ELSE ENDIF
+%token BREAK CONTINUE
 %token GT LT GTE LTE EQUALS NOT_EQUALS
 
 %left GT LT GTE LTE
@@ -50,6 +51,8 @@ stmt_body   : stmt_assign                       { $<node>$ = $<node>1; }
             | stmt_write                        { $<node>$ = $<node>1; }
             | stmt_if                           { $<node>$ = $<node>1; }
             | stmt_while                        { $<node>$ = $<node>1; }
+            | BREAK                             { $<node>$ = create_break_node(); }
+            | CONTINUE                          { $<node>$ = create_continue_node(); }
             ;
 
 stmt_assign : ID '=' expr                       { $<node>$ = create_assignment_node($<var_name>1, $<node>3); }

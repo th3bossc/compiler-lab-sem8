@@ -24,6 +24,8 @@ enum node_type_s {
     NODE_TYPE_IFELSE,
     NODE_TYPE_WHILE,
     NODE_TYPE_COND,
+    NODE_TYPE_BREAK,
+    NODE_TYPE_CONTINUE,
 };
 
 enum node_value_type_s {
@@ -62,6 +64,8 @@ node_t* create_assignment_node(char var_name, node_t* expr);
 node_t* create_ifelse_node(node_t* condn, node_t* if_subtree, node_t* else_subtree);
 node_t* create_while_node(node_t* condn, node_t* body);
 node_t* create_relop_node(char relop[], node_t* left, node_t* right);
+node_t* create_break_node();
+node_t* create_continue_node();
 
 int get_addr(char var_name);
 void destroy_node(node_t* node);

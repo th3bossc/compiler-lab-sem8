@@ -89,10 +89,20 @@ node_t* create_ifelse_node(node_t* condn, node_t* if_subtree, node_t* else_subtr
 node_t* create_while_node(node_t* condn, node_t* body) {
     node_value_t data;
     node_t* node = create_node(data, NODE_VALUE_VOID, NODE_TYPE_WHILE, condn, body);
-
     return node;
 }
 
+node_t* create_break_node() {
+    node_value_t data;
+    node_t* node = create_node(data, NODE_VALUE_VOID, NODE_TYPE_BREAK, NULL, NULL);
+    return node;
+}
+
+node_t* create_continue_node() {
+    node_value_t data;
+    node_t* node = create_node(data, NODE_VALUE_VOID, NODE_TYPE_CONTINUE, NULL, NULL);
+    return node;
+}
 
 void destroy_node(node_t* node) {
     if (node->left)

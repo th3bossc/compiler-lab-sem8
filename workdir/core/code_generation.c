@@ -210,7 +210,7 @@ reg_index_t generate_read_code(node_t* node, FILE* target_file) {
     return ret_val;
 }
 
-void generate_if_code(node_t* node, FILE* target_file) {
+void generate_if_code(node_t* node, FILE* target_file, label_index_t* break_label, label_index_t* continue_label) {
     if (!node || !(node->left) || !(node->right)) {
         perror("{code_generation:generate_if_code} Something went wrong");
         exit(1);
@@ -227,12 +227,12 @@ void generate_if_code(node_t* node, FILE* target_file) {
 
     reg_index_t condition_output = generate_expression_code(cond_node, target_file);
     fprintf(target_file, "JZ R%d, L%d\n", condition_output, exit_if_label);
-    generate_statement_structure(body_node, target_file);
+    generate_statement_structure(body_node, target_file, break_label, continue_label);
     fprintf(target_file, "L%d:\n", exit_if_label);
     free_register(condition_output);
 }
 
-void generate_ifelse_code(node_t* node, FILE* target_file) {
+void generate_ifelse_code(node_t* node, FILE* target_file, label_index_t* break_label, label_index_t* continue_label) {
     if (!node || !(node->left) || !(node->right) || !(node->left->left) || !(node->left->right)) {
         perror("{code_generation:generate_if_code} Something went wrong");
         exit(1);
@@ -251,10 +251,10 @@ void generate_ifelse_code(node_t* node, FILE* target_file) {
 
     reg_index_t condition_output = generate_expression_code(cond_node, target_file);
     fprintf(target_file, "JZ R%d, L%d\n", condition_output, else_body_label);
-    generate_statement_structure(if_body_node, target_file);
+    generate_statement_structure(if_body_node, target_file, break_label, continue_label);
     fprintf(target_file, "JMP L%d\n", exit_if_label);
     fprintf(target_file, "L%d:\n", else_body_label);
-    generate_statement_structure(else_body_node, target_file);
+    generate_statement_structure(else_body_node, target_file, break_label, continue_label);
     fprintf(target_file, "L%d:\n", exit_if_label);
     free_register(condition_output);
 }
@@ -278,20 +278,25 @@ void generate_while_code(node_t* node, FILE* target_file) {
     fprintf(target_file, "L%d:\n", condn_label);
     reg_index_t condition_output = generate_expression_code(cond_node, target_file);
     fprintf(target_file, "JZ R%d, L%d\n", condition_output, exit_while_label);
-    generate_statement_structure(body_node, target_file);
+    generate_statement_structure(body_node, target_file, &exit_while_label, &condn_label);
     fprintf(target_file, "JMP L%d\n", condn_label);
     fprintf(target_file, "L%d:\n", exit_while_label);
     free_register(condition_output);
 } 
 
 
-void generate_statement_structure(node_t* node, FILE* target_file) {
+void generate_statement_structure(node_t* node, FILE* target_file, label_index_t* break_label, label_index_t* continue_label) {
     if (!node)
         return;
-
+    if (break_label && node->node_type == NODE_TYPE_BREAK) {
+        fprintf(target_file, "JMP L%d\n", *break_label);
+    }
+    else if (continue_label && node->node_type == NODE_TYPE_CONTINUE) {
+        fprintf(target_file, "JMP L%d\n", *continue_label);
+    }
     if (node->node_type == NODE_TYPE_CONNECTOR) {
-        generate_statement_structure(node->left, target_file);
-        generate_statement_structure(node->right, target_file);
+        generate_statement_structure(node->left, target_file, break_label, continue_label);
+        generate_statement_structure(node->right, target_file, break_label, continue_label);
     }
     else if (node->node_type == NODE_TYPE_WRITE) {
         reg_index_t ret_val = generate_print_code(node, target_file);
@@ -305,18 +310,15 @@ void generate_statement_structure(node_t* node, FILE* target_file) {
         generate_assignment_code(node, target_file);
     } 
     else if (node->node_type == NODE_TYPE_IF) {
-        generate_if_code(node, target_file);
+        generate_if_code(node, target_file, break_label, continue_label);
     }
     else if (node->node_type == NODE_TYPE_IFELSE) {
-        generate_ifelse_code(node, target_file);
+        generate_ifelse_code(node, target_file, break_label, continue_label);
     }
     else if (node->node_type == NODE_TYPE_WHILE) {
         generate_while_code(node, target_file);
     }
-    else if (node->node_type == NODE_TYPE_OPERATOR || node->node_type == NODE_TYPE_VALUE || node->node_type == NODE_TYPE_ID || node->node_type == NODE_TYPE_RELOP)
-        return;
 }
-
 
 
 void reset_registers() {
@@ -409,7 +411,8 @@ void generate_program(node_t* body, FILE* target_file) {
     reset_labels();
 
     generate_headers(target_file);
+    fprintf(target_file, "BRKP\n");
     fprintf(target_file, "MOV SP, 4122\n");
-    generate_statement_structure(body, target_file);
+    generate_statement_structure(body, target_file, NULL, NULL);
     exit_program(target_file);
 }

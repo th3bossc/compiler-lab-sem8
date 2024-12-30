@@ -1,0 +1,21 @@
+begin
+    i = 0;
+    while (i < 10) do
+        write(i);
+        i = i+1;
+
+        if (i > 5) then
+            break;
+        endif;
+    endwhile;
+
+    i = 0;
+    while(i < 10) do 
+        if (i == 2) then
+            i = i + 1;
+            continue;
+        endif;
+        write(i);
+        i = i+1;
+    endwhile;
+end

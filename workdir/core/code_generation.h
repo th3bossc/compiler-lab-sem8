@@ -28,9 +28,9 @@ reg_index_t generate_expression_code(node_t* node, FILE* target_file);
 void generate_assignment_code(node_t* node, FILE* target_file);
 reg_index_t generate_print_code(node_t* node, FILE* target_file);
 reg_index_t generate_read_code(node_t* node, FILE* target_file);
-void generate_statement_structure(node_t* node, FILE* target_file);
-void generate_if_code(node_t* node, FILE* target_file);
-void generate_ifelse_code(node_t* node, FILE* target_file);
+void generate_statement_structure(node_t* node, FILE* target_file, label_index_t* break_label, label_index_t* continue_label);
+void generate_if_code(node_t* node, FILE* target_file, label_index_t* break_label, label_index_t* continue_label);
+void generate_ifelse_code(node_t* node, FILE* target_file, label_index_t* break_label, label_index_t* continue_label);
 void generate_while_code(node_t* node, FILE* target_file);
 
 
