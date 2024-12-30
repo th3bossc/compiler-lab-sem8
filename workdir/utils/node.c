@@ -1,5 +1,9 @@
 #include "node.h"
 
+int evaluate_expression(node_t* node, int* vars);
+int evaluate_bool_expression(node_t* node, int* vars);
+int evaluate_int_expression(node_t* node, int* vars);
+
 node_t* create_node(node_value_t data, node_value_type_t value_type, node_type_t node_type, node_t* left, node_t* right) {
     node_t* node = (node_t*) malloc(sizeof(node_t));
     node->data = data;
@@ -77,7 +81,7 @@ node_t* create_ifelse_node(node_t* condn, node_t* if_subtree, node_t* else_subtr
         return if_node;
     }
     else {
-        node_t* connector_node = create_ndoe(data, NODE_VALUE_VOID, NODE_TYPE_IFELSE, if_node, else_subtree);
+        node_t* connector_node = create_node(data, NODE_VALUE_VOID, NODE_TYPE_IFELSE, if_node, else_subtree);
         return connector_node;
     }
 }
@@ -97,6 +101,38 @@ void destroy_node(node_t* node) {
         destroy_node(node->right);
 
     free(node);
+}
+
+
+int evaluate_expression(node_t* node, int* vars) {
+    if (node->value_type == NODE_VALUE_INT) {
+        return evaluate_int_expression(node, vars);
+    }
+    else if (node->value_type == NODE_VALUE_BOOL) {
+        return evaluate_bool_expression(node, vars);
+    }
+    else if (node->value_type == NODE_VALUE_NOT_SET) {
+        node_t* lval = node->left;
+        node_t* rval = node->right;
+        if (!lval || !rval) {
+            perror("node:evaluate_expression: expr node doesn't have both left and right subtrees");
+            exit(1);
+        }
+
+        if (lval->value_type != rval->value_type) {
+            perror("node:evaluate_expression: mismatched types");
+            exit(1);
+        }
+
+        if (lval->value_type == NODE_VALUE_INT) {
+            node->value_type = NODE_VALUE_INT;
+            return evaluate_int_expression(node, vars);
+        }
+        else if (lval->value_type == NODE_VALUE_BOOL) {
+            node->value_type = NODE_VALUE_BOOL;
+            return evaluate_bool_expression(node, vars);
+        }
+    }
 }
 
 
@@ -128,37 +164,6 @@ int evaluate_int_expression(node_t* node, int* vars) {
                 break;
         }
         return answer;
-    }
-}
-
-int evaluate_expression(node_t* node, int* vars) {
-    if (node->value_type == NODE_VALUE_INT) {
-        return evaluate_int_expression(node, vars);
-    }
-    else if (node->value_type == NODE_VALUE_BOOL) {
-        return evaluate_bool_expression(node, vars);
-    }
-    else if (node->value_type == NODE_VALUE_NOT_SET) {
-        node_t* lval = node->left;
-        node_t* rval = node->right;
-        if (!lval || !rval) {
-            perror("node:evaluate_expression: expr node doesn't have both left and right subtrees");
-            exit(1);
-        }
-
-        if (lval->value_type != rval->value_type) {
-            perror("node:evaluate_expression: mismatched types");
-            exit(1);
-        }
-
-        if (lval->value_type == NODE_VALUE_INT) {
-            node->value_type = NODE_VALUE_INT;
-            return evaluate_int_expression(node, vars);
-        }
-        else if (lval->value_type == NODE_VALUE_BOOL) {
-            node->value_type = NODE_VALUE_BOOL;
-            return evaluate_bool_expression(node, vars);
-        }
     }
 }
 
@@ -221,13 +226,25 @@ void evaluate_helper(node_t* node, int* vars) {
         vars[node->left->data.var_name - 'a'] = expr_output;
     }
     else if (node->node_type == NODE_TYPE_IF) {
-
+        int cond_output = evaluate_expression(node->left, vars);
+        if (cond_output) {
+            evaluate_helper(node->right, vars);
+        }
     }
     else if (node->node_type == NODE_TYPE_IFELSE) {
-
+        node_t* if_node = node->left;
+        int cond_output = evaluate_bool_expression(if_node->left, vars);
+        if (cond_output) {
+            evaluate_helper(if_node->right, vars);
+        }
+        else {
+            evaluate_helper(node->right, vars);
+        }
     }
     else if (node->node_type == NODE_TYPE_WHILE) {
-
+        while(evaluate_expression(node->left, vars)) {
+            evaluate_helper(node->right, vars);
+        }
     }
     else if (node->node_type == NODE_TYPE_OPERATOR || node->node_type == NODE_TYPE_VALUE || node->node_type == NODE_TYPE_ID || node->node_type == NODE_TYPE_RELOP)
         return;
@@ -262,6 +279,18 @@ void print_prefix(node_t* node) {
         case NODE_TYPE_ASSIGN:
         case NODE_TYPE_OPERATOR:
             printf("%c ", node->data.op);
+            break;
+        case NODE_TYPE_IFELSE:
+            printf("IFELSE ");
+            break;
+        case NODE_TYPE_IF:
+            printf("IF ");
+            break;
+        case NODE_TYPE_WHILE:
+            printf("WHILE ");
+            break;
+        case NODE_TYPE_RELOP:
+            printf("%s ", node->data.relop);
             break;
     }
 

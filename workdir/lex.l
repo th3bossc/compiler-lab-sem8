@@ -46,14 +46,15 @@ then { return THEN; }
 else { return ELSE; }
 
 while { return WHILE; }
+do { return DO; }
 endwhile { return ENDWHILE; }
 
-> { return GT; }
->= { return GTE; }
-< { return LT; }
-<= { return LTE; }
-== { return EQUALS; }
-!= { return NOT_EQUALS; }
+">" { return GT; }
+">=" { return GTE; }
+"<" { return LT; }
+"<=" { return LTE; }
+"==" { return EQUALS; }
+"!=" { return NOT_EQUALS; }
 
 
 %%

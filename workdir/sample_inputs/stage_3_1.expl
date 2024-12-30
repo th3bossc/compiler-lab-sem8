@@ -1,0 +1,15 @@
+begin
+a = 45;
+b = 8;
+if ( a > b ) then
+    write(a);
+else 
+    write(b);
+endif;
+
+while(b > 0) do
+    write(b);
+    b = b-1;
+endwhile;
+
+end

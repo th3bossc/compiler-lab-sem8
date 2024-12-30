@@ -18,7 +18,7 @@ void parser_complete_handler(node_t*, FILE*);
 %token END_BLOCK BEGIN_BLOCK
 %token NUM ID 
 %token WRITE READ PUNCTUATION 
-%token WHILE ENDWHILE IF THEN ELSE ENDIF
+%token WHILE DO ENDWHILE IF THEN ELSE ENDIF
 %token GT LT GTE LTE EQUALS NOT_EQUALS
 
 %left '+' '-'
@@ -64,7 +64,7 @@ stmt_if     : IF '(' condn ')' THEN stmt_list ELSE stmt_list ENDIF  { $<node>$ =
             | IF '(' condn ')' THEN stmt_list ENDIF                 { $<node>$ = create_ifelse_node($<node>3, $<node>6, NULL); }
             ;
 
-stmt_while  : WHILE '(' condn ')' THEN stmt_list ENDWHILE   { $<node>$ = create_while_node($<node>3, $<node>6); }
+stmt_while  : WHILE '(' condn ')' DO stmt_list ENDWHILE   { $<node>$ = create_while_node($<node>3, $<node>6); }
             ;
 
 
