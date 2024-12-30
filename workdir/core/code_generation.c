@@ -234,7 +234,7 @@ void generate_if_code(node_t* node, FILE* target_file, label_index_t* break_labe
 
 void generate_ifelse_code(node_t* node, FILE* target_file, label_index_t* break_label, label_index_t* continue_label) {
     if (!node || !(node->left) || !(node->right) || !(node->left->left) || !(node->left->right)) {
-        perror("{code_generation:generate_if_code} Something went wrong");
+        perror("{code_generation:generate_ifelse_code} Something went wrong");
         exit(1);
     }
     node_t* cond_node = node->left->left;
@@ -242,7 +242,7 @@ void generate_ifelse_code(node_t* node, FILE* target_file, label_index_t* break_
     node_t* else_body_node = node->right;
 
     if (cond_node->value_type != NODE_VALUE_BOOL) {
-        perror("{node:generate_if_code} IF condn doesn't return a boolean value");
+        perror("{node:generate_ifelse_code} IF condn doesn't return a boolean value");
         exit(1);
     }
 
@@ -261,14 +261,14 @@ void generate_ifelse_code(node_t* node, FILE* target_file, label_index_t* break_
 
 void generate_while_code(node_t* node, FILE* target_file) {
     if (!node || !(node->left) || !(node->right)) {
-        perror("{code_generation:generate_if_code} Something went wrong");
+        perror("{code_generation:generate_while_code} Something went wrong");
         exit(1);
     }
     node_t* cond_node = node->left;
     node_t* body_node = node->right;
 
     if (cond_node->value_type != NODE_VALUE_BOOL) {
-        perror("{node:generate_if_code} IF condn doesn't return a boolean value");
+        perror("{node:generate_while_code} IF condn doesn't return a boolean value");
         exit(1);
     }
 
@@ -283,6 +283,61 @@ void generate_while_code(node_t* node, FILE* target_file) {
     fprintf(target_file, "L%d:\n", exit_while_label);
     free_register(condition_output);
 } 
+
+void generate_do_while_code(node_t* node, FILE* target_file) {
+    if (!node || !(node->left) || !(node->right)) {
+        perror("{code_generation:generate_do_while_code} Something went wrong");
+        exit(1);
+    }
+
+    node_t* cond_node = node->left;
+    node_t* body_node = node->right;
+
+    if (cond_node->value_type != NODE_VALUE_BOOL) {
+        perror("{node:generate_do_while_code} IF condn doesn't return a boolean value");
+        exit(1);
+    }
+
+    label_index_t start_label = get_label();
+    label_index_t condn_label = get_label();
+    label_index_t end_do_while_label = get_label();
+
+    fprintf(target_file, "L%d:\n", start_label);
+    generate_statement_structure(node->right, target_file, &end_do_while_label, &condn_label);
+    fprintf(target_file, "L%d:\n", condn_label);
+    reg_index_t expr_output = generate_expression_code(node->left, target_file);
+    fprintf(target_file, "JNZ R%d, L%d\n", expr_output, start_label);
+    fprintf(target_file, "L%d:\n", end_do_while_label);
+    free_register(expr_output);
+}
+
+void generate_repeat_code(node_t* node, FILE* target_file) {
+    if (!node || !(node->left) || !(node->right)) {
+        perror("{code_generation:generate_do_while_code} Something went wrong");
+        exit(1);
+    }
+
+    node_t* cond_node = node->left;
+    node_t* body_node = node->right;
+
+    if (cond_node->value_type != NODE_VALUE_BOOL) {
+        perror("{node:generate_do_while_code} IF condn doesn't return a boolean value");
+        exit(1);
+    }
+
+    label_index_t start_label = get_label();
+    label_index_t condn_label = get_label();
+    label_index_t end_repeat_label = get_label();
+
+    fprintf(target_file, "L%d:\n", start_label);
+    generate_statement_structure(node->right, target_file, &end_repeat_label, &condn_label);
+    fprintf(target_file, "L%d:\n", condn_label);
+    reg_index_t expr_output = generate_expression_code(node->left, target_file);
+    fprintf(target_file, "JZ R%d, L%d\n", expr_output, start_label);
+    fprintf(target_file, "L%d:\n", end_repeat_label);
+    free_register(expr_output);
+}
+
 
 
 void generate_statement_structure(node_t* node, FILE* target_file, label_index_t* break_label, label_index_t* continue_label) {
@@ -317,6 +372,12 @@ void generate_statement_structure(node_t* node, FILE* target_file, label_index_t
     }
     else if (node->node_type == NODE_TYPE_WHILE) {
         generate_while_code(node, target_file);
+    }
+    else if (node->node_type == NODE_TYPE_DO_WHILE) {
+        generate_do_while_code(node, target_file);
+    }
+    else if (node->node_type == NODE_TYPE_REPEAT) {
+        generate_repeat_code(node, target_file);
     }
 }
 

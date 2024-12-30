@@ -49,6 +49,10 @@ while { return WHILE; }
 do { return DO; }
 endwhile { return ENDWHILE; }
 
+repeat { return REPEAT; }
+until { return UNTIL; }
+endrepeat { return ENDREPEAT; }
+
 break { return BREAK; }
 continue { return CONTINUE; }
 

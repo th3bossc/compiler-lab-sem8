@@ -16,8 +16,10 @@ void parser_complete_handler(node_t*, FILE*);
 
 %token END_BLOCK BEGIN_BLOCK
 %token NUM ID 
-%token WRITE READ PUNCTUATION 
-%token WHILE DO ENDWHILE IF THEN ELSE ENDIF
+%token WRITE READ PUNCTUATION
+%token IF THEN ELSE ENDIF 
+%token WHILE DO ENDWHILE
+%token REPEAT UNTIL ENDREPEAT
 %token BREAK CONTINUE
 %token GT LT GTE LTE EQUALS NOT_EQUALS
 
@@ -51,6 +53,8 @@ stmt_body   : stmt_assign                       { $<node>$ = $<node>1; }
             | stmt_write                        { $<node>$ = $<node>1; }
             | stmt_if                           { $<node>$ = $<node>1; }
             | stmt_while                        { $<node>$ = $<node>1; }
+            | stmt_do_while                     { $<node>$ = $<node>1; }
+            | stmt_repeat_until                 { $<node>$ = $<node>1; }
             | BREAK                             { $<node>$ = create_break_node(); }
             | CONTINUE                          { $<node>$ = create_continue_node(); }
             ;
@@ -71,6 +75,11 @@ stmt_if     : IF '(' expr ')' THEN stmt_list ELSE stmt_list ENDIF  { $<node>$ = 
 
 stmt_while  : WHILE '(' expr ')' DO stmt_list ENDWHILE   { $<node>$ = create_while_node($<node>3, $<node>6); }
             ;
+
+stmt_do_while   : DO stmt_list WHILE '(' expr ')' ENDWHILE          { $<node>$ = create_do_while_node($<node>5, $<node>2); }
+                ;
+
+stmt_repeat_until   : REPEAT stmt_list UNTIL '(' expr ')' ENDREPEAT { $<node>$ = create_repeat_node($<node>5, $<node>2); }
 
 
 expr        : expr '+' expr                     { $<node>$ = create_operator_node($<op>2, $<node>1, $<node>3); }

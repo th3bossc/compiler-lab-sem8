@@ -32,7 +32,8 @@ void generate_statement_structure(node_t* node, FILE* target_file, label_index_t
 void generate_if_code(node_t* node, FILE* target_file, label_index_t* break_label, label_index_t* continue_label);
 void generate_ifelse_code(node_t* node, FILE* target_file, label_index_t* break_label, label_index_t* continue_label);
 void generate_while_code(node_t* node, FILE* target_file);
-
+void generate_do_while_code(node_t* node, FILE* target_file);
+void generate_repeat_code(node_t* node, FILE* target_file);
 
 void load_addr_to_register(reg_index_t reg, int addr, FILE* target_file);
 void store_register_to_addr(reg_index_t reg, int addr, FILE* target_file);

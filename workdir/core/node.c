@@ -92,6 +92,17 @@ node_t* create_while_node(node_t* condn, node_t* body) {
     return node;
 }
 
+node_t* create_do_while_node(node_t* condn, node_t* body) {
+    node_value_t data;
+    node_t* node = create_node(data, NODE_VALUE_VOID, NODE_TYPE_DO_WHILE, condn, body);
+    return node;
+}
+
+node_t* create_repeat_node(node_t* condn, node_t* body) {
+    node_value_t data;
+    node_t* node = create_node(data, NODE_VALUE_VOID, NODE_TYPE_REPEAT, condn, body);
+}
+
 node_t* create_break_node() {
     node_value_t data;
     node_t* node = create_node(data, NODE_VALUE_VOID, NODE_TYPE_BREAK, NULL, NULL);
@@ -310,6 +321,18 @@ void print_prefix(node_t* node) {
             break;
         case NODE_TYPE_WHILE:
             printf("WHILE ");
+            break;
+        case NODE_TYPE_DO_WHILE:
+            printf("DOWHILE ");
+            break;
+        case NODE_TYPE_REPEAT:
+            printf("REPEATUNTIL");
+            break;
+        case NODE_TYPE_BREAK:
+            printf("BREAK ");
+            break;
+        case NODE_TYPE_CONTINUE:
+            printf("CONTINUE ");
             break;
         case NODE_TYPE_RELOP:
             printf("%s ", node->data.relop);

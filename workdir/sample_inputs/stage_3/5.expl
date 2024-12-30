@@ -1,0 +1,13 @@
+begin
+do  
+    a = 5;
+    write(a);
+    a = 8;
+    write(a);
+while (a != 8) endwhile;
+a = 0;
+repeat
+    write(a);
+    a = a+1;
+until (a == 10) endrepeat;
+end
