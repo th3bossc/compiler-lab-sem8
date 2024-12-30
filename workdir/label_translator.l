@@ -30,7 +30,6 @@ label L[0-9]+
         int label;
         label_count++;
         sscanf(yytext, "L%d:", &label);
-        printf("label %d\n", label);
         create_label_node(label, instr_count*2 + 2056);
     }
 }
@@ -43,7 +42,6 @@ label L[0-9]+
     else {
         int label;
         sscanf(yytext, "%*s L%d", &label);
-        printf("call L%d\n", label);
         int address = get_label_address(label);
         fprintf(output_path, "CALL %d\n", address);
     }
@@ -56,7 +54,6 @@ label L[0-9]+
     else {
         int label;
         sscanf(yytext, "%*s L%d", &label);
-        printf("jmp L%d\n", label);
         int address = get_label_address(label);
         fprintf(output_path, "JMP %d\n", address);
     }
@@ -70,7 +67,6 @@ label L[0-9]+
         int label;
         int reg_no;
         sscanf(yytext, "%*s R%d, L%d", &reg_no, &label);
-        printf("jz R%d, L%d\n", reg_no, label);
         int address = get_label_address(label);
         fprintf(output_path, "JZ R%d, %d\n", reg_no, address);
     }
@@ -84,7 +80,6 @@ label L[0-9]+
         int label;
         int reg_no;
         sscanf(yytext, "%*s R%d, L%d", &reg_no, &label);
-        printf("jnz R%d, L%d\n", reg_no, label);
         int address = get_label_address(label);
         fprintf(output_path, "JNZ R%d, %d\n", reg_no, address);
     }
@@ -117,6 +112,7 @@ int yywrap() {
 int main(int argc, char* argv[]) {
     label_head_node = NULL;
     label_tail_node = NULL;
+    printf("Running label translation....\n");
     for (int i = 0; i < argc; i++) {
         if (strcmp(argv[i], "--input") == 0 && (i+1) < argc) {
             FILE* fp = fopen(argv[i+1], "r");
