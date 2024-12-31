@@ -4,3 +4,6 @@ a.out
 y.tab.h
 .clang-format
 dotfiles/
+*.xsm
+output*
+label_translator
