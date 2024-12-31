@@ -23,6 +23,7 @@ label_index_t get_label();
 
 reg_index_t generate_arithmetic_code(node_t* node, FILE* target_file);
 reg_index_t generate_boolean_code(node_t* node, FILE* target_file);
+reg_index_t generate_string_code(node_t* node, FILE* target_file);
 reg_index_t generate_expression_code(node_t* node, FILE* target_file);
 
 void generate_assignment_code(node_t* node, FILE* target_file);

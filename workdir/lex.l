@@ -26,13 +26,19 @@
 }
 
 ; {
-    return PUNCTUATION;
+    return SEMICOLON;
 }
 
-[a-z] {
-    yylval.var_name = *yytext;
-    return ID;
+, {
+    return COMMA;
 }
+
+
+decl { return BEGIN_DECL; }
+enddecl { return END_DECL; }
+
+int { return INT; }
+str { return STR; }
 
 begin { return BEGIN_BLOCK; }
 end { return END_BLOCK; }
@@ -63,5 +69,15 @@ continue { return CONTINUE; }
 "==" { return EQUALS; }
 "!=" { return NOT_EQUALS; }
 
+\"([^\"\\]|\\.)*\" {
+    yylval.var_name = strdup(yytext);
+    return STRING_LITERAL;
+}
+
+
+[a-zA-Z_]([a-zA-Z0-9_]*) {
+    yylval.var_name = strdup(yytext);
+    return ID;
+}
 
 %%

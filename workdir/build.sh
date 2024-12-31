@@ -3,10 +3,11 @@
 yacc -d parser.y
 lex -d lex.l
 
-gcc lex.yy.c y.tab.c \
+gcc -g lex.yy.c y.tab.c \
     core/node.c \
     core/code_generation.c \
     core/label_translation.c \
+    core/symbol_table.c \
     -lfl -o output
 
 rm y.tab.c

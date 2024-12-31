@@ -5,6 +5,8 @@
 #include <string.h>
 
 #include "core/code_generation.h"
+#include "core/symbol_table.h"
+
 extern FILE *yyin;
 void yyerror(const char*);
 int yylex();
@@ -12,16 +14,25 @@ void generate_code(node_t*, FILE*);
 FILE* output_path = NULL;
 bool evaluate_mode = false;
 void parser_complete_handler(node_t*, FILE*);
+
+symbol_type_t var_type;
+
+// #define YYDEBUG 1
+// int yydebug = 1;
 %}
 
+%token SEMICOLON COMMA
 %token END_BLOCK BEGIN_BLOCK
+%token BEGIN_DECL END_DECL
 %token NUM ID 
-%token WRITE READ PUNCTUATION
+%token INT STR
+%token WRITE READ
 %token IF THEN ELSE ENDIF 
 %token WHILE DO ENDWHILE
 %token REPEAT UNTIL ENDREPEAT
 %token BREAK CONTINUE
 %token GT LT GTE LTE EQUALS NOT_EQUALS
+%token STRING_LITERAL
 
 %left GT LT GTE LTE
 %left EQUALS NOT_EQUALS
@@ -29,23 +40,45 @@ void parser_complete_handler(node_t*, FILE*);
 %left '+' '-'
 %left '*' '/'
 
+
+
 %union {
     node_t* node;
     char op;
-    char var_name;
+    char* var_name;
     int val;
 }
 
 %%
 
-start       : BEGIN_BLOCK stmt_list END_BLOCK   { printf("Parse Complete\nPrefix: "); print_prefix($<node>2); printf("\n"); parser_complete_handler($<node>2, output_path); exit(0); }
+start       : BEGIN_DECL decl_list END_DECL BEGIN_BLOCK stmt_list END_BLOCK     { printf("Parse Complete\nPrefix: "); print_prefix($<node>5); printf("\n"); print_symbol_table(); parser_complete_handler($<node>5, output_path); exit(0); }
+            | BEGIN_DECL decl_list END_DECL stmt_list                           { printf("Parse Complete\nPrefix: "); print_prefix($<node>4); printf("\n"); print_symbol_table(); parser_complete_handler($<node>4, output_path); exit(0); }
+            | BEGIN_BLOCK stmt_list END_BLOCK                                   { printf("Parser Complete\nPrefix: "); print_prefix($<node>2); printf("\n"); print_symbol_table(); parser_complete_handler($<node>2, output_path); exit(0); }
+            | BEGIN_DECL decl_list END_DECL                                     { printf("Parser Complete\n"); print_symbol_table(); exit(0); }
+            ;
+
+
+
+decl_list   : decl_list decl        
+            | decl
+            ;
+
+decl        : type id_list SEMICOLON 
+            ;
+
+id_list     : id_list COMMA ID      { create_symbol_table_entry($<var_name>3, var_type, 1); }
+            | ID                    { create_symbol_table_entry($<var_name>1, var_type, 1); }
+            ;
+
+type        : INT       { var_type = NODE_VALUE_INT; }
+            | STR       { var_type = NODE_VALUE_STR; }
             ;
 
 stmt_list   : stmt_list stmt                    { $<node>$ = create_connector_node($<node>1, $<node>2); }
             | stmt                              { $<node>$ = $<node>1; }
             ;
 
-stmt        : stmt_body PUNCTUATION             { $<node>$ = $<node>1; }
+stmt        : stmt_body SEMICOLON             { $<node>$ = $<node>1; }
             ;
 
 stmt_body   : stmt_assign                       { $<node>$ = $<node>1; }
@@ -95,6 +128,7 @@ expr        : expr '+' expr                     { $<node>$ = create_operator_nod
             | expr NOT_EQUALS expr              { $<node>$ = create_relop_node("!=", $<node>1, $<node>3); }
             | expr GTE expr                     { $<node>$ = create_relop_node(">=", $<node>1, $<node>3); }
             | expr LTE expr                     { $<node>$ = create_relop_node("<=", $<node>1, $<node>3); }
+            | STRING_LITERAL                    { $<node>$ = create_string_node($<var_name>1); }
             ;
 
 %%
@@ -105,7 +139,7 @@ void yyerror(const char* s) {
 
 void parser_complete_handler(node_t* node, FILE* fp) {
     if (evaluate_mode) {
-        evaluate_node(node);
+        // evaluate_node(node);
     }
     else {
         generate_program(node, fp);
@@ -114,6 +148,7 @@ void parser_complete_handler(node_t* node, FILE* fp) {
 
 
 int main(int argc, char* argv[]) {
+    create_table();
     for (int i = 0; i < argc; i++) {
         if (strcmp(argv[i], "--input") == 0 && (i+1) < argc) {
             FILE* fp = fopen(argv[i+1], "r");
