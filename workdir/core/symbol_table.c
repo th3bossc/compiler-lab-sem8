@@ -15,14 +15,82 @@ int get_binding(int size) {
     return start_address;
 }
 
-
-symbol_table_t* create_symbol_table_entry(char* name, symbol_type_t type, int size) {
+symbol_table_t* create_entry(char* name, symbol_type_t type, int size, int outer_size, int inner_size, symbol_type_t inner_type, int binding, symbol_table_t* next) {
     symbol_table_t* entry = (symbol_table_t*) malloc(sizeof(symbol_table_t));
     entry->name = strdup(name);
     entry->type = type;
-    entry->size = size;    
-    entry->binding = get_binding(size);
-    entry->next = NULL;
+    entry->size = size;
+    entry->outer_size = outer_size;
+    entry->inner_size = inner_size;
+    entry->inner_type = inner_type;
+    entry->binding = binding;
+    entry->next = next;
+
+    return entry;
+}
+
+
+symbol_table_t* create_symbol_table_entry(char* name, symbol_type_t type, int size) {
+    symbol_table_t* entry = create_entry(
+        name,
+        type,
+        size,
+        0,
+        0,
+        SYMBOL_TYPE_VOID,
+        get_binding(size),
+        NULL
+    );
+
+
+    if (!symbol_table) {
+        symbol_table = entry;
+        symbol_table_tail = entry;
+    }
+    else {
+        symbol_table_tail->next = entry;
+        symbol_table_tail = entry;
+    }
+
+    return entry;
+}
+
+symbol_table_t* create_symbol_table_array_entry(char* name, symbol_type_t type, symbol_type_t inner_type, int outer_size, int inner_size) {
+    int size = inner_size + outer_size;
+    symbol_table_t* entry = create_entry(
+        name,
+        type,
+        size,
+        outer_size,
+        inner_size,
+        inner_type,
+        get_binding(size),
+        NULL
+    );
+
+    if (!symbol_table) {
+        symbol_table = entry;
+        symbol_table_tail = entry;
+    }
+    else {
+        symbol_table_tail->next = entry;
+        symbol_table_tail = entry;
+    }
+
+    return entry;
+}
+
+symbol_table_t* create_symbol_table_pointer_entry(char* name, symbol_type_t inner_type, int size) {
+    symbol_table_t* entry = create_entry(
+        name,
+        SYMBOL_TYPE_PTR,
+        size,
+        0,
+        0,
+        inner_type,
+        get_binding(size),
+        NULL
+    );
 
     if (!symbol_table) {
         symbol_table = entry;
@@ -48,9 +116,9 @@ symbol_table_t* symbol_table_lookup(char* name) {
 void print_symbol_table() {
     for (symbol_table_t* entry = symbol_table; entry != NULL; entry = entry->next) {
         char* type;
-        if (entry->type == NODE_VALUE_INT)
+        if (entry->type == SYMBOL_TYPE_INT)
             type = "INT";
-        else if (entry->type == NODE_VALUE_STR)
+        else if (entry->type == SYMBOL_TYPE_STR)
             type = "STR";
         printf("{ name: %s, type: %s, size: %d }\n", entry->name, type, entry->size);
     }

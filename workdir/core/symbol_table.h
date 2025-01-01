@@ -10,17 +10,23 @@ typedef enum symbol_type_s symbol_type_t;
 
 
 enum symbol_type_s {
-    NODE_VALUE_INT,
-    NODE_VALUE_STR,
-    NODE_VALUE_BOOL,
-    NODE_VALUE_VOID,
-    NODE_VALUE_NOT_SET,
+    SYMBOL_TYPE_INT,
+    SYMBOL_TYPE_STR,
+    SYMBOL_TYPE_BOOL,
+    SYMBOL_TYPE_VOID,
+    SYMBOL_TYPE_NOT_SET,
+    SYMBOL_TYPE_ARR,
+    SYMBOL_TYPE_2D_ARR,
+    SYMBOL_TYPE_PTR,
 };
 
 struct symbol_table_s {
     char* name;
     symbol_type_t type;
     int size;
+    int outer_size;
+    int inner_size;
+    symbol_type_t inner_type;
     int binding;
     symbol_table_t* next;   
 };
@@ -30,6 +36,8 @@ int free_address;
 
 int get_binding(int size);
 symbol_table_t* create_symbol_table_entry(char* name, symbol_type_t type, int size);
+symbol_table_t* create_symbol_table_array_entry(char* name, symbol_type_t type, symbol_type_t inner_type, int outer_size, int inner_size);
+symbol_table_t* create_symbol_table_pointer_entry(char* name, symbol_type_t inner_type, int size);
 symbol_table_t* symbol_table_lookup(char* name);
 void print_symbol_table();
 void create_table();

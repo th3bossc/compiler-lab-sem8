@@ -39,6 +39,7 @@ symbol_type_t var_type;
 
 %left '+' '-'
 %left '*' '/'
+%left '&'
 
 
 
@@ -66,9 +67,15 @@ decl_list   : decl_list decl
 decl        : type id_list SEMICOLON 
             ;
 
-id_list     : id_list COMMA ID      { create_symbol_table_entry($<var_name>3, var_type, 1); }
-            | ID                    { create_symbol_table_entry($<var_name>1, var_type, 1); }
+id_list     : id_list id_type 
+            | id_type
             ;
+
+id_type     : ID                            { create_symbol_table_entry($<var_name>1, var_type, 1); }
+            | ID '[' NUM ']'                { create_symbol_table_array_entry($<var_name>1, SYMBOL_TYPE_ARR, var_type, $<val>3, 1); }
+            | ID '[' NUM ']' '[' NUM ']'    { create_symbol_table_array_entry($<var_name>1, SYMBOL_TYPE_2D_ARR, var_type, $<val>3, $<val>6); }
+            | '*' ID                        { create_symbol_table_pointer_entry($<var_name>2, var_type, 1); }
+            ; 
 
 type        : INT       { var_type = NODE_VALUE_INT; }
             | STR       { var_type = NODE_VALUE_STR; }

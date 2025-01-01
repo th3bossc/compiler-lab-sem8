@@ -36,16 +36,16 @@ reg_index_t generate_expression_code(node_t* node, FILE* target_file) {
         perror("{code_generation:generate_expression_code} Something weong wrong");
         exit(1);
     }
-    if (node->value_type == NODE_VALUE_INT) {
+    if (node->value_type == SYMBOL_TYPE_INT) {
         return generate_arithmetic_code(node, target_file);
     }
-    else if (node->value_type == NODE_VALUE_BOOL) {
+    else if (node->value_type == SYMBOL_TYPE_BOOL) {
         return generate_boolean_code(node, target_file);
     }
-    else if (node->value_type == NODE_VALUE_STR) {
+    else if (node->value_type == SYMBOL_TYPE_STR) {
         return generate_string_code(node, target_file);
     }
-    else if (node->value_type == NODE_VALUE_NOT_SET) {
+    else if (node->value_type == SYMBOL_TYPE_NOT_SET) {
         node_t* l_val = node->left;
         node_t* r_val = node->right;
         if (!l_val || !r_val) {
@@ -58,12 +58,12 @@ reg_index_t generate_expression_code(node_t* node, FILE* target_file) {
             exit(1);
         }
 
-        if (l_val->value_type == NODE_VALUE_INT) {
-            node->value_type = NODE_VALUE_INT;
+        if (l_val->value_type == SYMBOL_TYPE_INT) {
+            node->value_type = SYMBOL_TYPE_INT;
             return generate_arithmetic_code(node, target_file);
         }
-        else if (l_val->value_type == NODE_VALUE_BOOL) {
-            node->value_type = NODE_VALUE_BOOL;
+        else if (l_val->value_type == SYMBOL_TYPE_BOOL) {
+            node->value_type = SYMBOL_TYPE_BOOL;
             return generate_boolean_code(node, target_file);
         }
     }
@@ -247,7 +247,7 @@ void generate_if_code(node_t* node, FILE* target_file, label_index_t* break_labe
     node_t* cond_node = node->left;
     node_t* body_node = node->right;
 
-    if (cond_node->value_type != NODE_VALUE_BOOL) {
+    if (cond_node->value_type != SYMBOL_TYPE_BOOL) {
         perror("{node:generate_if_code} IF condn doesn't return a boolean value");
         exit(1);
     }
@@ -270,7 +270,7 @@ void generate_ifelse_code(node_t* node, FILE* target_file, label_index_t* break_
     node_t* if_body_node = node->left->right;
     node_t* else_body_node = node->right;
 
-    if (cond_node->value_type != NODE_VALUE_BOOL) {
+    if (cond_node->value_type != SYMBOL_TYPE_BOOL) {
         perror("{node:generate_ifelse_code} IF condn doesn't return a boolean value");
         exit(1);
     }
@@ -296,7 +296,7 @@ void generate_while_code(node_t* node, FILE* target_file) {
     node_t* cond_node = node->left;
     node_t* body_node = node->right;
 
-    if (cond_node->value_type != NODE_VALUE_BOOL) {
+    if (cond_node->value_type != SYMBOL_TYPE_BOOL) {
         perror("{node:generate_while_code} IF condn doesn't return a boolean value");
         exit(1);
     }
@@ -322,7 +322,7 @@ void generate_do_while_code(node_t* node, FILE* target_file) {
     node_t* cond_node = node->left;
     node_t* body_node = node->right;
 
-    if (cond_node->value_type != NODE_VALUE_BOOL) {
+    if (cond_node->value_type != SYMBOL_TYPE_BOOL) {
         perror("{node:generate_do_while_code} IF condn doesn't return a boolean value");
         exit(1);
     }
@@ -349,7 +349,7 @@ void generate_repeat_code(node_t* node, FILE* target_file) {
     node_t* cond_node = node->left;
     node_t* body_node = node->right;
 
-    if (cond_node->value_type != NODE_VALUE_BOOL) {
+    if (cond_node->value_type != SYMBOL_TYPE_BOOL) {
         perror("{node:generate_do_while_code} IF condn doesn't return a boolean value");
         exit(1);
     }

@@ -19,14 +19,14 @@ node_t* create_node(node_value_t data, symbol_type_t value_type, node_type_t nod
 node_t* create_num_node(int val) {
     node_value_t data;
     data.n_val = val;
-    node_t* node = create_node(data, NODE_VALUE_INT, NODE_TYPE_INT, NULL, NULL);
+    node_t* node = create_node(data, SYMBOL_TYPE_INT, NODE_TYPE_INT, NULL, NULL);
     return node;
 }
 
 node_t* create_string_node(char* literal) {
     node_value_t data;
     data.s_val = strdup(literal);
-    node_t* node = create_node(data, NODE_VALUE_STR, NODE_TYPE_STRING, NULL, NULL);
+    node_t* node = create_node(data, SYMBOL_TYPE_STR, NODE_TYPE_STRING, NULL, NULL);
     return node;
 }
 
@@ -47,26 +47,26 @@ node_t* create_operator_node(char op, node_t* left, node_t* right) {
     node_value_t data;
     data.c_val = op;
 
-    node_t* node = create_node(data, NODE_VALUE_NOT_SET, NODE_TYPE_OPERATOR, left, right);
+    node_t* node = create_node(data, SYMBOL_TYPE_NOT_SET, NODE_TYPE_OPERATOR, left, right);
     return node;
 } 
 
 node_t* create_write_node(node_t* expr) {
     node_value_t data;
-    node_t* node = create_node(data, NODE_VALUE_INT, NODE_TYPE_WRITE, expr, NULL);
+    node_t* node = create_node(data, SYMBOL_TYPE_INT, NODE_TYPE_WRITE, expr, NULL);
     return node;
 }
 
 node_t* create_read_node(char* var_name) {
     node_t* var_node = create_id_node(var_name);
     node_value_t data;
-    node_t* node = create_node(data, NODE_VALUE_INT, NODE_TYPE_READ, var_node, NULL);
+    node_t* node = create_node(data, SYMBOL_TYPE_INT, NODE_TYPE_READ, var_node, NULL);
     return node;
 }
 
 node_t* create_connector_node(node_t* left, node_t* right) {
     node_value_t data;
-    node_t* node = create_node(data, NODE_VALUE_VOID, NODE_TYPE_CONNECTOR, left, right);
+    node_t* node = create_node(data, SYMBOL_TYPE_VOID, NODE_TYPE_CONNECTOR, left, right);
     return node;
 }
 
@@ -74,55 +74,55 @@ node_t* create_assignment_node(char* var_name, node_t* expr) {
     node_value_t data;
     data.c_val = '=';
     node_t* id_node = create_id_node(var_name);
-    node_t* node = create_node(data, NODE_VALUE_VOID, NODE_TYPE_ASSIGN, id_node, expr);
+    node_t* node = create_node(data, SYMBOL_TYPE_VOID, NODE_TYPE_ASSIGN, id_node, expr);
     return node;
 }
 
 node_t* create_relop_node(char relop[], node_t* left, node_t* right) {
     node_value_t data;
     data.s_val = strdup(relop);
-    node_t* node = create_node(data, NODE_VALUE_BOOL, NODE_TYPE_RELOP, left, right);
+    node_t* node = create_node(data, SYMBOL_TYPE_BOOL, NODE_TYPE_RELOP, left, right);
     return node;
 }
 
 node_t* create_ifelse_node(node_t* condn, node_t* if_subtree, node_t* else_subtree) {
     node_value_t data;
-    node_t* if_node = create_node(data, NODE_VALUE_VOID, NODE_TYPE_IF, condn, if_subtree);
+    node_t* if_node = create_node(data, SYMBOL_TYPE_VOID, NODE_TYPE_IF, condn, if_subtree);
     if (else_subtree == NULL) {
         return if_node;
     }
     else {
-        node_t* connector_node = create_node(data, NODE_VALUE_VOID, NODE_TYPE_IFELSE, if_node, else_subtree);
+        node_t* connector_node = create_node(data, SYMBOL_TYPE_VOID, NODE_TYPE_IFELSE, if_node, else_subtree);
         return connector_node;
     }
 }
 
 node_t* create_while_node(node_t* condn, node_t* body) {
     node_value_t data;
-    node_t* node = create_node(data, NODE_VALUE_VOID, NODE_TYPE_WHILE, condn, body);
+    node_t* node = create_node(data, SYMBOL_TYPE_VOID, NODE_TYPE_WHILE, condn, body);
     return node;
 }
 
 node_t* create_do_while_node(node_t* condn, node_t* body) {
     node_value_t data;
-    node_t* node = create_node(data, NODE_VALUE_VOID, NODE_TYPE_DO_WHILE, condn, body);
+    node_t* node = create_node(data, SYMBOL_TYPE_VOID, NODE_TYPE_DO_WHILE, condn, body);
     return node;
 }
 
 node_t* create_repeat_node(node_t* condn, node_t* body) {
     node_value_t data;
-    node_t* node = create_node(data, NODE_VALUE_VOID, NODE_TYPE_REPEAT, condn, body);
+    node_t* node = create_node(data, SYMBOL_TYPE_VOID, NODE_TYPE_REPEAT, condn, body);
 }
 
 node_t* create_break_node() {
     node_value_t data;
-    node_t* node = create_node(data, NODE_VALUE_VOID, NODE_TYPE_BREAK, NULL, NULL);
+    node_t* node = create_node(data, SYMBOL_TYPE_VOID, NODE_TYPE_BREAK, NULL, NULL);
     return node;
 }
 
 node_t* create_continue_node() {
     node_value_t data;
-    node_t* node = create_node(data, NODE_VALUE_VOID, NODE_TYPE_CONTINUE, NULL, NULL);
+    node_t* node = create_node(data, SYMBOL_TYPE_VOID, NODE_TYPE_CONTINUE, NULL, NULL);
     return node;
 }
 
