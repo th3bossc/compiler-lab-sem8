@@ -57,12 +57,41 @@ node_t* create_write_node(node_t* expr) {
     return node;
 }
 
-node_t* create_read_node(char* var_name) {
-    node_t* var_node = create_id_node(var_name);
+node_t* create_read_node(node_t* expr) {
     node_value_t data;
-    node_t* node = create_node(data, SYMBOL_TYPE_INT, NODE_TYPE_READ, var_node, NULL);
+    // node_t* node = create_node(data, SYMBOL_TYPE_INT, NODE_TYPE_READ, var_node, NULL);
+    node_t* node = create_node(data, SYMBOL_TYPE_INT, NODE_TYPE_READ, expr, NULL);
     return node;
 }
+
+node_t* create_arr_index_node(char* arr_name, node_t* index_node) {
+    node_value_t data;
+    node_t* id_node = create_id_node(arr_name);
+    node_t* node = create_node(data, SYMBOL_TYPE_NOT_SET, NODE_TYPE_ARR_INDEX, id_node, index_node);
+    return node;
+}
+
+node_t* create_2d_arr_index_node(char* arr_name, node_t* outer_index_node, node_t* inner_index_node) {
+    node_value_t data;
+    node_t* id_node = create_id_node(arr_name);
+    node_t* index_node = create_operator_node('+', outer_index_node, inner_index_node);
+    node_t* node = create_node(data, SYMBOL_TYPE_NOT_SET, NODE_TYPE_ARR_INDEX, id_node, index_node);
+    return node;
+}
+
+node_t* create_ptr_deref_node(node_t* expr) {
+    node_value_t data;
+    data.c_val = '&';
+    node_t* node = create_node(data, SYMBOL_TYPE_PTR, NODE_TYPE_PTR_DEREF, expr, NULL);
+    return node;
+}
+
+node_t* create_ptr_ref_node(node_t* expr) {
+    node_value_t data;
+    data.c_val = '*';
+    node_t* node = create_node(data, SYMBOL_TYPE_NOT_SET, NODE_TYPE_PTR_REF, expr, NULL);
+}
+
 
 node_t* create_connector_node(node_t* left, node_t* right) {
     node_value_t data;
@@ -75,6 +104,30 @@ node_t* create_assignment_node(char* var_name, node_t* expr) {
     data.c_val = '=';
     node_t* id_node = create_id_node(var_name);
     node_t* node = create_node(data, SYMBOL_TYPE_VOID, NODE_TYPE_ASSIGN, id_node, expr);
+    return node;
+}
+
+node_t* create_arr_assignment_node(char* var_name, node_t* index_node, node_t* expr) {
+    node_value_t data;
+    data.c_val = '=';
+    node_t* arr_node = create_arr_index_node(var_name, index_node);
+    node_t* node = create_node(data, SYMBOL_TYPE_VOID, NODE_TYPE_ASSIGN, arr_node, expr);
+    return node;
+}
+
+node_t* create_2d_arr_assignment_node(char* var_name, node_t* outer_index_node, node_t* inner_index_node, node_t* expr) {
+    node_value_t data;
+    data.c_val = '=';
+    node_t* arr_node = create_2d_arr_index_node(var_name, outer_index_node, inner_index_node);
+    node_t* node = create_node(data, SYMBOL_TYPE_VOID, NODE_TYPE_ASSIGN, arr_node, expr);
+    return node;
+}
+
+node_t* create_ptr_assignment_node(char* var_name, node_t* expr) {
+    node_value_t data;
+    data.c_val = '=';
+    node_t* id_node = create_id_node(var_name);
+    node_t* node = create_node(data, SYMBOL_TYPE_INT, NODE_TYPE_PTR_REF, id_node, expr);
     return node;
 }
 

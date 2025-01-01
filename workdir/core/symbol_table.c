@@ -15,12 +15,11 @@ int get_binding(int size) {
     return start_address;
 }
 
-symbol_table_t* create_entry(char* name, symbol_type_t type, int size, int outer_size, int inner_size, symbol_type_t inner_type, int binding, symbol_table_t* next) {
+symbol_table_t* create_entry(char* name, symbol_type_t type, int size, int inner_size, symbol_type_t inner_type, int binding, symbol_table_t* next) {
     symbol_table_t* entry = (symbol_table_t*) malloc(sizeof(symbol_table_t));
     entry->name = strdup(name);
     entry->type = type;
     entry->size = size;
-    entry->outer_size = outer_size;
     entry->inner_size = inner_size;
     entry->inner_type = inner_type;
     entry->binding = binding;
@@ -35,7 +34,6 @@ symbol_table_t* create_symbol_table_entry(char* name, symbol_type_t type, int si
         name,
         type,
         size,
-        0,
         0,
         SYMBOL_TYPE_VOID,
         get_binding(size),
@@ -55,16 +53,14 @@ symbol_table_t* create_symbol_table_entry(char* name, symbol_type_t type, int si
     return entry;
 }
 
-symbol_table_t* create_symbol_table_array_entry(char* name, symbol_type_t type, symbol_type_t inner_type, int outer_size, int inner_size) {
-    int size = inner_size + outer_size;
+symbol_table_t* create_symbol_table_array_entry(char* name, symbol_type_t inner_type, int outer_size, int inner_size) {
     symbol_table_t* entry = create_entry(
         name,
-        type,
-        size,
+        SYMBOL_TYPE_ARR,
         outer_size,
         inner_size,
         inner_type,
-        get_binding(size),
+        get_binding(outer_size),
         NULL
     );
 
@@ -85,7 +81,6 @@ symbol_table_t* create_symbol_table_pointer_entry(char* name, symbol_type_t inne
         name,
         SYMBOL_TYPE_PTR,
         size,
-        0,
         0,
         inner_type,
         get_binding(size),
@@ -116,10 +111,28 @@ symbol_table_t* symbol_table_lookup(char* name) {
 void print_symbol_table() {
     for (symbol_table_t* entry = symbol_table; entry != NULL; entry = entry->next) {
         char* type;
-        if (entry->type == SYMBOL_TYPE_INT)
+        if (entry->type == SYMBOL_TYPE_INT) {
             type = "INT";
-        else if (entry->type == SYMBOL_TYPE_STR)
+        }
+        else if (entry->type == SYMBOL_TYPE_STR) {
             type = "STR";
+        }
+        else if (entry->type == SYMBOL_TYPE_ARR) {
+            if (entry->inner_type == SYMBOL_TYPE_INT) {
+                type = "ARR[INT]";
+            }
+            else if (entry->inner_size == SYMBOL_TYPE_STR) {
+                type = "ARR[STR]";
+            }
+        }
+        else if (entry->type == SYMBOL_TYPE_PTR) {
+            if (entry->inner_type == SYMBOL_TYPE_INT) {
+                type = "PTR[INT]";
+            }
+            else if (entry->inner_type == SYMBOL_TYPE_STR) {
+                type = "PTR[STR]";
+            }
+        }
         printf("{ name: %s, type: %s, size: %d }\n", entry->name, type, entry->size);
     }
 }

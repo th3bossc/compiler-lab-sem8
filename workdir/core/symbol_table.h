@@ -16,7 +16,6 @@ enum symbol_type_s {
     SYMBOL_TYPE_VOID,
     SYMBOL_TYPE_NOT_SET,
     SYMBOL_TYPE_ARR,
-    SYMBOL_TYPE_2D_ARR,
     SYMBOL_TYPE_PTR,
 };
 
@@ -24,7 +23,6 @@ struct symbol_table_s {
     char* name;
     symbol_type_t type;
     int size;
-    int outer_size;
     int inner_size;
     symbol_type_t inner_type;
     int binding;
@@ -36,9 +34,10 @@ int free_address;
 
 int get_binding(int size);
 symbol_table_t* create_symbol_table_entry(char* name, symbol_type_t type, int size);
-symbol_table_t* create_symbol_table_array_entry(char* name, symbol_type_t type, symbol_type_t inner_type, int outer_size, int inner_size);
+symbol_table_t* create_symbol_table_array_entry(char* name, symbol_type_t inner_type, int outer_size, int inner_size);
 symbol_table_t* create_symbol_table_pointer_entry(char* name, symbol_type_t inner_type, int size);
 symbol_table_t* symbol_table_lookup(char* name);
+symbol_table_t* find_var_at_address(int address);
 void print_symbol_table();
 void create_table();
 void destroy_table();

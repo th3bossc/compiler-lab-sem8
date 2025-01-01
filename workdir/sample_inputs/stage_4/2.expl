@@ -1,0 +1,14 @@
+decl
+    int *p, *q, a, b, c;
+enddecl
+
+begin
+    c = 10;
+    q = &b;
+    read(b);
+    p = &a;
+    *p = (*q) + 5;
+    write(a);
+    *p = a+ (b*c);
+    write(a);
+end

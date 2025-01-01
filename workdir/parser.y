@@ -17,8 +17,8 @@ void parser_complete_handler(node_t*, FILE*);
 
 symbol_type_t var_type;
 
-// #define YYDEBUG 1
-// int yydebug = 1;
+#define YYDEBUG 1
+int yydebug = 1;
 %}
 
 %token SEMICOLON COMMA
@@ -40,6 +40,7 @@ symbol_type_t var_type;
 %left '+' '-'
 %left '*' '/'
 %left '&'
+%nonassoc '[' ']' '%'
 
 
 
@@ -52,10 +53,10 @@ symbol_type_t var_type;
 
 %%
 
-start       : BEGIN_DECL decl_list END_DECL BEGIN_BLOCK stmt_list END_BLOCK     { printf("Parse Complete\nPrefix: "); print_prefix($<node>5); printf("\n"); print_symbol_table(); parser_complete_handler($<node>5, output_path); exit(0); }
-            | BEGIN_DECL decl_list END_DECL stmt_list                           { printf("Parse Complete\nPrefix: "); print_prefix($<node>4); printf("\n"); print_symbol_table(); parser_complete_handler($<node>4, output_path); exit(0); }
-            | BEGIN_BLOCK stmt_list END_BLOCK                                   { printf("Parser Complete\nPrefix: "); print_prefix($<node>2); printf("\n"); print_symbol_table(); parser_complete_handler($<node>2, output_path); exit(0); }
-            | BEGIN_DECL decl_list END_DECL                                     { printf("Parser Complete\n"); print_symbol_table(); exit(0); }
+// start       : BEGIN_DECL decl_list END_DECL BEGIN_BLOCK stmt_list END_BLOCK     { printf("Parse Complete\nPrefix: "); print_prefix($<node>5); printf("\n"); print_symbol_table(); parser_complete_handler($<node>5, output_path); exit(0); }
+start       : BEGIN_DECL decl_list END_DECL stmt_list                           { printf("Parse Complete\nPrefix: "); print_prefix($<node>4); printf("\n"); print_symbol_table(); parser_complete_handler($<node>4, output_path); exit(0); }
+            // | BEGIN_BLOCK stmt_list END_BLOCK                                   { printf("Parser Complete\nPrefix: "); print_prefix($<node>2); printf("\n"); print_symbol_table(); parser_complete_handler($<node>2, output_path); exit(0); }
+            // | BEGIN_DECL decl_list END_DECL                                     { printf("Parser Complete\n"); print_symbol_table(); exit(0); }
             ;
 
 
@@ -67,18 +68,18 @@ decl_list   : decl_list decl
 decl        : type id_list SEMICOLON 
             ;
 
-id_list     : id_list id_type 
+id_list     : id_list COMMA id_type 
             | id_type
             ;
 
 id_type     : ID                            { create_symbol_table_entry($<var_name>1, var_type, 1); }
-            | ID '[' NUM ']'                { create_symbol_table_array_entry($<var_name>1, SYMBOL_TYPE_ARR, var_type, $<val>3, 1); }
-            | ID '[' NUM ']' '[' NUM ']'    { create_symbol_table_array_entry($<var_name>1, SYMBOL_TYPE_2D_ARR, var_type, $<val>3, $<val>6); }
+            | ID '[' NUM ']'                { create_symbol_table_array_entry($<var_name>1, var_type, $<val>3, 1); }
+            | ID '[' NUM ']' '[' NUM ']'    { create_symbol_table_array_entry($<var_name>1, var_type, $<val>3, $<val>6); }
             | '*' ID                        { create_symbol_table_pointer_entry($<var_name>2, var_type, 1); }
             ; 
 
-type        : INT       { var_type = NODE_VALUE_INT; }
-            | STR       { var_type = NODE_VALUE_STR; }
+type        : INT       { var_type = SYMBOL_TYPE_INT; }
+            | STR       { var_type = SYMBOL_TYPE_STR; }
             ;
 
 stmt_list   : stmt_list stmt                    { $<node>$ = create_connector_node($<node>1, $<node>2); }
@@ -99,13 +100,16 @@ stmt_body   : stmt_assign                       { $<node>$ = $<node>1; }
             | CONTINUE                          { $<node>$ = create_continue_node(); }
             ;
 
-stmt_assign : ID '=' expr                       { $<node>$ = create_assignment_node($<var_name>1, $<node>3); }
+stmt_assign : ID '=' expr                               { $<node>$ = create_assignment_node($<var_name>1, $<node>3); }
+            | ID '[' expr ']' '=' expr                  { $<node>$ = create_arr_assignment_node($<var_name>1, $<node>3, $<node>6); }
+            | ID '[' expr ']' '[' expr ']' '=' expr     { $<node>$ = create_2d_arr_assignment_node($<var_name>1, $<node>3, $<node>6, $<node>9); }
+            | '*' ID '=' expr                             { $<node>$ = create_ptr_assignment_node($<var_name>2, $<node>4); }
             ;
 
 stmt_write  : WRITE '(' expr ')'                { $<node>$ = create_write_node($<node>3); }
             ;
 
-stmt_read   : READ '(' ID ')'                   { $<node>$ = create_read_node($<var_name>3); }
+stmt_read   : READ '(' expr ')'                   { $<node>$ = create_read_node($<node>3); }
             ;
 
 
@@ -126,6 +130,7 @@ expr        : expr '+' expr                     { $<node>$ = create_operator_nod
             | expr '-' expr                     { $<node>$ = create_operator_node($<op>2, $<node>1, $<node>3); }
             | expr '*' expr                     { $<node>$ = create_operator_node($<op>2, $<node>1, $<node>3); }
             | expr '/' expr                     { $<node>$ = create_operator_node($<op>2, $<node>1, $<node>3); }
+            | expr '%' expr                     { $<node>$ = create_operator_node($<op>2, $<node>1, $<node>3); }
             | '(' expr ')'                      { $<node>$ = $<node>2; }
             | NUM                               { $<node>$ = create_num_node($<val>1); }
             | ID                                { $<node>$ = create_id_node($<var_name>1); }
@@ -136,6 +141,10 @@ expr        : expr '+' expr                     { $<node>$ = create_operator_nod
             | expr GTE expr                     { $<node>$ = create_relop_node(">=", $<node>1, $<node>3); }
             | expr LTE expr                     { $<node>$ = create_relop_node("<=", $<node>1, $<node>3); }
             | STRING_LITERAL                    { $<node>$ = create_string_node($<var_name>1); }
+            | '*' expr                          { $<node>$ = create_ptr_ref_node($<node>2); }
+            | '&' expr                          { $<node>$ = create_ptr_deref_node($<node>2); }
+            | ID '[' expr ']'                   { $<node>$ = create_arr_index_node($<var_name>1, $<node>3); }
+            | ID '[' expr ']' '[' expr ']'      { $<node>$ = create_2d_arr_index_node($<var_name>1, $<node>3, $<node>6); }
             ;
 
 %%

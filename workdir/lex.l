@@ -15,13 +15,13 @@
     return NUM;
 }
 
-[+\-*\/]  {
+[+\-*\/&%]  {
     yylval.op = *yytext;
 
     return *yytext;
 }
 
-[()=] {
+[()=\[\]] {
     return *yytext;
 }
 

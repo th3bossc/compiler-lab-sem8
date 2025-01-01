@@ -28,6 +28,9 @@ enum node_type_s {
     NODE_TYPE_DO_WHILE,
     NODE_TYPE_BREAK,
     NODE_TYPE_CONTINUE,
+    NODE_TYPE_ARR_INDEX,
+    NODE_TYPE_PTR_REF,
+    NODE_TYPE_PTR_DEREF,
 };
 
 
@@ -54,9 +57,16 @@ node_t* create_string_node(char* data);
 node_t* create_id_node(char* var_name);
 node_t* create_operator_node(char op, node_t* left, node_t* right);
 node_t* create_write_node(node_t* expr);
-node_t* create_read_node(char* var_name);
+node_t* create_read_node(node_t* expr);
+node_t* create_arr_index_node(char* arr_name, node_t* index_node);
+node_t* create_2d_arr_index_node(char* arr_name, node_t* outer_index_node, node_t* inner_index_node);
+node_t* create_ptr_deref_node(node_t* expr);
+node_t* create_ptr_ref_node(node_t* expr);
 node_t* create_connector_node(node_t* left, node_t* right);
 node_t* create_assignment_node(char* var_name, node_t* expr);
+node_t* create_arr_assignment_node(char* var_name, node_t* index_node, node_t* expr);
+node_t* create_2d_arr_assignment_node(char* var_name, node_t* outer_index_node, node_t* inner_index_node, node_t* expr);
+node_t* create_ptr_assignment_node(char* var_name, node_t* expr);
 node_t* create_ifelse_node(node_t* condn, node_t* if_subtree, node_t* else_subtree);
 node_t* create_while_node(node_t* condn, node_t* body);
 node_t* create_do_while_node(node_t* condn, node_t* body);
