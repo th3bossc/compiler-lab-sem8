@@ -20,7 +20,7 @@ word [^ \n]+
 
 {newline} {
     count_lines++;
-    line_with_content++;
+    line_with_content = 0;
 }
 
 (.) {
