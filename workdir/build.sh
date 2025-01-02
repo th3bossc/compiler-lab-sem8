@@ -8,6 +8,7 @@ gcc -g lex.yy.c y.tab.c \
     core/code_generation.c \
     core/label_translation.c \
     core/symbol_table.c \
+    core/instr_set.c \
     -lfl -o output
 
 rm y.tab.c

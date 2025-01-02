@@ -17,8 +17,8 @@ void parser_complete_handler(node_t*, FILE*);
 
 symbol_type_t var_type;
 
-#define YYDEBUG 1
-int yydebug = 1;
+// #define YYDEBUG 1
+// int yydebug = 1;
 %}
 
 %token SEMICOLON COMMA

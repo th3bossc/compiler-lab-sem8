@@ -11,32 +11,6 @@ symbol_type_t is_type_compatible(symbol_type_t type1, symbol_type_t type2) {
         return SYMBOL_TYPE_NOT_SET;
     return -1;
 }
-reg_index_t get_free_register() {
-    for (reg_index_t i = 0; i < NUM_REGISTERS; i++) {
-        if (free_registers[i] == true) {
-            free_registers[i] = false;
-            return i;
-        }
-    }
-
-    perror("Out of registers");
-    exit(1);
-}
-
-label_index_t get_label() {
-    used_labels++;
-    return used_labels;
-}
-
-void reset_labels() {
-    used_labels = 0;
-}
-
-
-
-void free_register(reg_index_t reg) {
-    free_registers[reg] = true;
-}
 
 int get_addr(symbol_table_t* var_entry) {
     return var_entry->binding;
@@ -86,7 +60,7 @@ reg_index_t generate_string_code(node_t* node, FILE* target_file) {
     }
 
     reg_index_t free_reg = get_free_register();
-    fprintf(target_file, "MOV R%d, %s\n", free_reg, node->data.s_val);
+    immediate_addressing_str(free_reg, node->data.s_val, target_file);
     return free_reg;
 }
 
@@ -99,12 +73,13 @@ reg_index_t generate_boolean_code(node_t* node, FILE* target_file) {
     if (node->node_type == NODE_TYPE_INT) {
         reg_index_t free_reg = get_free_register();
 
-        fprintf(target_file, "MOV R%d, %d\n", free_reg, (node->data).n_val);
+        immediate_addressing_int(free_reg, node->data.n_val, target_file);
         return free_reg;
     }
     else if (node->node_type == NODE_TYPE_ID) {
         reg_index_t free_reg = get_free_register();
-        load_addr_to_register(free_reg, get_addr(node->data.var_entry), target_file);
+        int address = get_addr(node->data.var_entry);
+        direct_addressing_load(address, free_reg, target_file);
         return free_reg;
 
     }
@@ -117,32 +92,32 @@ reg_index_t generate_boolean_code(node_t* node, FILE* target_file) {
     reg_index_t r_val_reg = generate_expression_code(node->right, target_file);
 
     if (strcmp(relop, ">") == 0) {
-        fprintf(target_file, "GT R%d, R%d\n", l_val_reg, r_val_reg);
+        greater_than(l_val_reg, r_val_reg, target_file);
         free_register(r_val_reg);
         return l_val_reg;
     }
     else if (strcmp(relop, ">=") == 0) {
-        fprintf(target_file, "GE R%d, R%d\n", l_val_reg, r_val_reg);
+        greater_than_or_equals(l_val_reg, r_val_reg, target_file);
         free_register(r_val_reg);
         return l_val_reg;
     } 
     else if (strcmp(relop, "<") == 0) {
-        fprintf(target_file, "LT R%d, R%d\n", l_val_reg, r_val_reg);
+        less_than(l_val_reg, r_val_reg, target_file);
         free_register(r_val_reg);
         return l_val_reg;
     } 
     else if (strcmp(relop, "<=") == 0) {
-        fprintf(target_file, "LE R%d, R%d\n", l_val_reg, r_val_reg);
+        less_than_or_equals(l_val_reg, r_val_reg, target_file);
         free_register(r_val_reg);
         return l_val_reg;
     } 
-    else if (strcmp(relop, "==") == 0) {      
-        fprintf(target_file, "EQ R%d, R%d\n", l_val_reg, r_val_reg);
+    else if (strcmp(relop, "==") == 0) {
+        equals(l_val_reg, r_val_reg, target_file);
         free_register(r_val_reg);
         return l_val_reg;  
     } 
     else if (strcmp(relop, "!=") == 0) {
-        fprintf(target_file, "NE R%d, R%d\n", l_val_reg, r_val_reg);
+        not_equals(l_val_reg, r_val_reg, target_file);
         free_register(r_val_reg);
         return l_val_reg;
     }  
@@ -172,8 +147,8 @@ reg_index_t generate_arr_index_code(node_t* node, FILE* target_file) {
 
     node->value_type = id_node->data.var_entry->inner_type;
     int id_address = get_addr(id_node->data.var_entry);
-    fprintf(target_file, "ADD R%d, %d\n", expr_output, id_address);
-    fprintf(target_file, "MOV R%d, [R%d]\n", expr_output, expr_output);
+    add_immediate(expr_output, id_address, target_file);
+    register_indirect_addressing_load(expr_output, expr_output, target_file);
     return expr_output;
 }
 
@@ -186,12 +161,13 @@ reg_index_t generate_arithmetic_code(node_t* node, FILE* target_file) {
     if (node->node_type == NODE_TYPE_INT) {
         reg_index_t free_reg = get_free_register();
 
-        fprintf(target_file, "MOV R%d, %d\n", free_reg, (node->data).n_val);
+        immediate_addressing_int(free_reg, (node->data).n_val, target_file);
         return free_reg;
     }
     else if (node->node_type == NODE_TYPE_ID) {
         reg_index_t free_reg = get_free_register();
-        load_addr_to_register(free_reg, get_addr(node->data.var_entry), target_file);
+        int addr = get_addr(node->data.var_entry);
+        direct_addressing_load(addr, free_reg, target_file);
         return free_reg;
 
     }
@@ -207,19 +183,19 @@ reg_index_t generate_arithmetic_code(node_t* node, FILE* target_file) {
     node->value_type = output_type;
     switch (op) {
         case '+':
-            fprintf(target_file, "ADD R%d, R%d\n", l_val_reg, r_val_reg);
+            add_registers(l_val_reg, r_val_reg, target_file);
             break;
-        case '-':
-            fprintf(target_file, "SUB R%d, R%d\n", l_val_reg, r_val_reg);
+        case '-':           
+            sub_registers(l_val_reg, r_val_reg, target_file);
             break;
         case '*':
-            fprintf(target_file, "MUL R%d, R%d\n", l_val_reg, r_val_reg);
+            mul_registers(l_val_reg, r_val_reg, target_file);
             break;
         case '/':
-            fprintf(target_file, "DIV R%d, R%d\n", l_val_reg, r_val_reg);
+            div_registers(l_val_reg, r_val_reg, target_file);
             break;
         case '%':
-            fprintf(target_file, "MOD R%d, R%d\n", l_val_reg, r_val_reg);
+            mod_registers(l_val_reg, r_val_reg, target_file);
             break;
         default: 
             perror("unknown operator");
@@ -241,7 +217,7 @@ reg_index_t generate_ptr_ref_code(node_t* node, FILE* target_file) {
         exit(1);
     }
     node->value_type = node->left->data.var_entry->inner_type;
-    fprintf(target_file, "MOV R%d, [R%d]\n", expr_output, expr_output);
+    register_indirect_addressing_load(expr_output, expr_output, target_file);
     return expr_output;
 }
 
@@ -260,7 +236,7 @@ reg_index_t generate_ptr_deref_code(node_t* node, FILE* target_file) {
     int address = get_addr(id_node->data.var_entry);
     reg_index_t free_reg = get_free_register();
     node->value_type = id_node->value_type;
-    fprintf(target_file, "MOV R%d, %d\n", free_reg, address);
+    immediate_addressing_int(free_reg, address, target_file);
     return free_reg;
 }
 
@@ -286,7 +262,7 @@ void generate_assignment_code(node_t* node, FILE* target_file) {
 
     node_t* id_node = node->left;
     int addr = get_addr(id_node->data.var_entry);
-    store_register_to_addr(expr_output, addr, target_file);
+    direct_addressing_store(addr, expr_output, target_file);
     free_register(expr_output);
 }
 
@@ -312,14 +288,14 @@ void generate_arr_assignment_code(node_t* node, FILE* target_file) {
 
     arr_index_node->value_type = id_node->data.var_entry->inner_type;
     int id_address = get_addr(id_node->data.var_entry);
-    fprintf(target_file, "ADD R%d, %d\n", index_output, id_address);
+    add_immediate(index_output, id_address, target_file);
     reg_index_t expr_output = generate_expression_code(node->right, target_file);
     if (node->left->value_type != node->right->value_type) {
         perror("{code_generation:generate_arr_assignment_code} Type mismatch");
         exit(1);
     }
 
-    fprintf(target_file, "MOV [R%d], R%d\n", index_output, expr_output);
+    register_indirect_addressing_store(index_output, expr_output, target_file);
     free_register(index_output);
     free_register(expr_output);
 
@@ -347,8 +323,8 @@ void generate_ptr_assignment_code(node_t* node, FILE* target_file) {
 
     reg_index_t free_reg = get_free_register();
     int address = get_addr(id_node->data.var_entry);
-    fprintf(target_file, "MOV R%d, [%d]\n", free_reg, address);
-    fprintf(target_file, "MOV [R%d], R%d\n", free_reg, expr_output);
+    direct_addressing_load(address, free_reg, target_file);
+    register_indirect_addressing_store(free_reg, expr_output, target_file);
     free_register(expr_output);
     free_register(free_reg);
 }
@@ -399,7 +375,7 @@ reg_index_t generate_read_code(node_t* node, FILE* target_file) {
 
         reg_index_t free_reg = generate_expression_code(index_node, target_file);
         int addr = get_addr(id_node->data.var_entry);
-        fprintf(target_file, "ADD R%d, %d\n", free_reg, addr);
+        add_immediate(free_reg, addr, target_file);
         ret_val = read_into_reg_addr(free_reg, target_file);
         free_register(free_reg);
         return ret_val;
@@ -422,9 +398,9 @@ void generate_if_code(node_t* node, FILE* target_file, label_index_t* break_labe
     label_index_t exit_if_label = get_label();
 
     reg_index_t condition_output = generate_expression_code(cond_node, target_file);
-    fprintf(target_file, "JZ R%d, L%d\n", condition_output, exit_if_label);
+    jump_zero_to_label(condition_output, exit_if_label, target_file);
     generate_statement_structure(body_node, target_file, break_label, continue_label);
-    fprintf(target_file, "L%d:\n", exit_if_label);
+    add_label(exit_if_label, target_file);
     free_register(condition_output);
 }
 
@@ -446,12 +422,12 @@ void generate_ifelse_code(node_t* node, FILE* target_file, label_index_t* break_
     label_index_t exit_if_label = get_label();
 
     reg_index_t condition_output = generate_expression_code(cond_node, target_file);
-    fprintf(target_file, "JZ R%d, L%d\n", condition_output, else_body_label);
+    jump_zero_to_label(condition_output, else_body_label, target_file);
     generate_statement_structure(if_body_node, target_file, break_label, continue_label);
-    fprintf(target_file, "JMP L%d\n", exit_if_label);
-    fprintf(target_file, "L%d:\n", else_body_label);
+    jump_to_label(exit_if_label, target_file);
+    add_label(else_body_label, target_file);
     generate_statement_structure(else_body_node, target_file, break_label, continue_label);
-    fprintf(target_file, "L%d:\n", exit_if_label);
+    add_label(exit_if_label, target_file);
     free_register(condition_output);
 }
 
@@ -471,12 +447,12 @@ void generate_while_code(node_t* node, FILE* target_file) {
     label_index_t condn_label = get_label();
     label_index_t exit_while_label = get_label();
 
-    fprintf(target_file, "L%d:\n", condn_label);
+    add_label(condn_label, target_file);
     reg_index_t condition_output = generate_expression_code(cond_node, target_file);
-    fprintf(target_file, "JZ R%d, L%d\n", condition_output, exit_while_label);
+    jump_zero_to_label(condition_output, exit_while_label, target_file);
     generate_statement_structure(body_node, target_file, &exit_while_label, &condn_label);
-    fprintf(target_file, "JMP L%d\n", condn_label);
-    fprintf(target_file, "L%d:\n", exit_while_label);
+    jump_to_label(condn_label, target_file);
+    add_label(exit_while_label, target_file);
     free_register(condition_output);
 } 
 
@@ -497,13 +473,12 @@ void generate_do_while_code(node_t* node, FILE* target_file) {
     label_index_t start_label = get_label();
     label_index_t condn_label = get_label();
     label_index_t end_do_while_label = get_label();
-
-    fprintf(target_file, "L%d:\n", start_label);
+    add_label(start_label, target_file);
     generate_statement_structure(node->right, target_file, &end_do_while_label, &condn_label);
-    fprintf(target_file, "L%d:\n", condn_label);
+    add_label(condn_label, target_file);
     reg_index_t expr_output = generate_expression_code(node->left, target_file);
-    fprintf(target_file, "JNZ R%d, L%d\n", expr_output, start_label);
-    fprintf(target_file, "L%d:\n", end_do_while_label);
+    jump_not_zero_to_label(expr_output, start_label, target_file);
+    add_label(end_do_while_label, target_file);
     free_register(expr_output);
 }
 
@@ -524,13 +499,13 @@ void generate_repeat_code(node_t* node, FILE* target_file) {
     label_index_t start_label = get_label();
     label_index_t condn_label = get_label();
     label_index_t end_repeat_label = get_label();
-
-    fprintf(target_file, "L%d:\n", start_label);
+    
+    add_label(start_label, target_file);
     generate_statement_structure(node->right, target_file, &end_repeat_label, &condn_label);
-    fprintf(target_file, "L%d:\n", condn_label);
+    add_label(condn_label, target_file);
     reg_index_t expr_output = generate_expression_code(node->left, target_file);
-    fprintf(target_file, "JZ R%d, L%d\n", expr_output, start_label);
-    fprintf(target_file, "L%d:\n", end_repeat_label);
+    jump_zero_to_label(expr_output, start_label, target_file);
+    add_label(end_repeat_label, target_file);
     free_register(expr_output);
 }
 
@@ -540,10 +515,10 @@ void generate_statement_structure(node_t* node, FILE* target_file, label_index_t
     if (!node)
         return;
     if (break_label && node->node_type == NODE_TYPE_BREAK) {
-        fprintf(target_file, "JMP L%d\n", *break_label);
+        jump_to_label(*break_label, target_file);
     }
     else if (continue_label && node->node_type == NODE_TYPE_CONTINUE) {
-        fprintf(target_file, "JMP L%d\n", *continue_label);
+        jump_to_label(*continue_label, target_file);
     }
     if (node->node_type == NODE_TYPE_CONNECTOR) {
         generate_statement_structure(node->left, target_file, break_label, continue_label);
@@ -581,101 +556,83 @@ void generate_statement_structure(node_t* node, FILE* target_file, label_index_t
 }
 
 
-void reset_registers() {
-    for (reg_index_t i = 0; i < NUM_REGISTERS; i++)
-        free_registers[i] = true;
-}
-
-
-
 reg_index_t print_register(reg_index_t data, FILE* target_file) {
-    reg_index_t free_reg = get_free_register();
+    reg_index_t func_name = get_free_register();
+    reg_index_t arg1 = get_free_register();
 
-    fprintf(target_file, "MOV R%d, \"Write\"\nPUSH R%d\n", free_reg, free_reg);
-    fprintf(target_file, "MOV R%d, -2\nPUSH R%d\n", free_reg, free_reg);
-    fprintf(target_file, "PUSH R%d\n", data);
-    fprintf(target_file, "PUSH R%d\n", free_reg);
-    fprintf(target_file, "PUSH R%d\n", free_reg);
-    fprintf(target_file, "CALL 0\n");
+    immediate_addressing_str(func_name, "\"Write\"", target_file);
+    immediate_addressing_int(arg1, -2, target_file);
 
+    call_library_function(func_name, arg1, data, data, data, target_file);
+
+    free_register(func_name);
+    free_register(arg1);
 
     reg_index_t ret_val = get_free_register();
-    fprintf(target_file, "POP R%d\nPOP R%d\nPOP R%d\nPOP R%d\nPOP R%d\n", ret_val, free_reg, free_reg, free_reg, free_reg);
+    post_library_call(ret_val, data, target_file);
 
-    free_register(free_reg);
     return ret_val;
 }
 
 reg_index_t print_addr(int addr, FILE* target_file) {
     reg_index_t free_reg = get_free_register();
     
-    load_addr_to_register(free_reg, addr, target_file);
+    direct_addressing_load(addr, free_reg, target_file);
     reg_index_t ret_val = print_register(free_reg, target_file);
     free_register(free_reg);
 
     return ret_val;
 }
 
-
-void load_addr_to_register(reg_index_t reg, int addr, FILE* target_file) {
-    fprintf(target_file, "MOV R%d, [%d]\n", reg, addr);
-}
-
-void store_register_to_addr(reg_index_t reg, int addr, FILE* target_file) {
-    fprintf(target_file, "MOV [%d], R%d\n", addr, reg);
-}
-
-
 reg_index_t read_into_addr(int addr, FILE* target_file) {
-    reg_index_t free_reg = get_free_register();
+    reg_index_t func_name = get_free_register();
+    reg_index_t arg1 = get_free_register();
+    reg_index_t arg2 = get_free_register();
 
-    fprintf(target_file, "MOV R%d, \"Read\"\nPUSH R%d\n", free_reg, free_reg);
-    fprintf(target_file, "MOV R%d, -1\nPUSH R%d\n", free_reg, free_reg);
-    fprintf(target_file, "MOV R%d, %d\nPUSH R%d\n", free_reg, addr, free_reg);
-    fprintf(target_file, "PUSH R%d\n", free_reg);
-    fprintf(target_file, "PUSH R%d\n", free_reg);
-    fprintf(target_file, "CALL 0\n");
+    immediate_addressing_str(func_name, "\"Read\"", target_file);
+    immediate_addressing_int(arg1, -1, target_file);
+    immediate_addressing_int(arg2, addr, target_file);
+
+    call_library_function(func_name, arg1, arg2, arg2, arg2, target_file);
+
+    free_register(func_name);
+    free_register(arg1);
 
     reg_index_t ret_val = get_free_register();
-    fprintf(target_file, "POP R%d\nPOP R%d\nPOP R%d\nPOP R%d\nPOP R%d\n", ret_val, free_reg, free_reg, free_reg, free_reg);
+    post_library_call(ret_val, arg2, target_file);
+    free_register(arg2);
 
-    free_register(free_reg);
     return ret_val;
 }
 
 reg_index_t read_into_reg_addr(reg_index_t reg_index, FILE* target_file) {
-    reg_index_t free_reg = get_free_register();
+    reg_index_t func_name = get_free_register();
+    reg_index_t arg1 = get_free_register();
 
-    fprintf(target_file, "MOV R%d, \"Read\"\nPUSH R%d\n", free_reg, free_reg);
-    fprintf(target_file, "MOV R%d, -1\nPUSH R%d\n", free_reg, free_reg);
-    fprintf(target_file, "PUSH R%d\n", reg_index);
-    fprintf(target_file, "PUSH R%d\n", free_reg);
-    fprintf(target_file, "PUSH R%d\n", free_reg);
-    fprintf(target_file, "CALL 0\n");
+    immediate_addressing_str(func_name, "\"Read\"", target_file);
+    immediate_addressing_int(arg1, -1, target_file);
+
+    call_library_function(func_name, arg1, reg_index, reg_index, reg_index, target_file);
+
+    free_register(func_name);
+    free_register(arg1);
 
     reg_index_t ret_val = get_free_register();
-    fprintf(target_file, "POP R%d\nPOP R%d\nPOP R%d\nPOP R%d\nPOP R%d\n", ret_val, free_reg, free_reg, free_reg, free_reg);
+    post_library_call(ret_val, reg_index, target_file);
+    free_register(reg_index);
 
-    free_register(free_reg);
     return ret_val;
 }
 
 
 void exit_program(FILE* target_file) {
-    reg_index_t free_reg = get_free_register();
-
-    fprintf(target_file, "MOV R%d, \"Exit\"\nPUSH R%d\n", free_reg, free_reg);
-    fprintf(target_file, "PUSH R%d\n", free_reg);
-    fprintf(target_file, "PUSH R%d\n", free_reg);
-    fprintf(target_file, "PUSH R%d\n", free_reg);
-    fprintf(target_file, "PUSH R%d\n", free_reg);
-    fprintf(target_file, "CALL 0\n");
-
-
+    reg_index_t func_name = get_free_register();
+    immediate_addressing_str(func_name, "\"Exit\"", target_file);
     reg_index_t ret_val = get_free_register();
-    fprintf(target_file, "POP R%d\nPOP R%d\nPOP R%d\nPOP R%d\nPOP R%d\n", ret_val, free_reg, free_reg, free_reg, free_reg);
+    call_library_function(func_name, ret_val, ret_val, ret_val, ret_val, target_file);
 
-    free_register(free_reg);
+    free_register(func_name);
+    post_library_call(ret_val, ret_val, target_file);
 }
 
 void generate_headers(FILE* target_file) {
@@ -688,7 +645,7 @@ void generate_program(node_t* body, FILE* target_file) {
     reset_labels();
 
     generate_headers(target_file);
-    fprintf(target_file, "BRKP\n");
+    add_breakpoint(target_file);
     int free_address = get_binding(0);
     fprintf(target_file, "MOV SP, %d\n", free_address);
     generate_statement_structure(body, target_file, NULL, NULL);
