@@ -53,10 +53,10 @@ symbol_type_t var_type;
 
 %%
 
-// start       : BEGIN_DECL decl_list END_DECL BEGIN_BLOCK stmt_list END_BLOCK     { printf("Parse Complete\nPrefix: "); print_prefix($<node>5); printf("\n"); print_symbol_table(); parser_complete_handler($<node>5, output_path); exit(0); }
-start       : BEGIN_DECL decl_list END_DECL stmt_list                           { printf("Parse Complete\nPrefix: "); print_prefix($<node>4); printf("\n"); print_symbol_table(); parser_complete_handler($<node>4, output_path); exit(0); }
-            // | BEGIN_BLOCK stmt_list END_BLOCK                                   { printf("Parser Complete\nPrefix: "); print_prefix($<node>2); printf("\n"); print_symbol_table(); parser_complete_handler($<node>2, output_path); exit(0); }
-            // | BEGIN_DECL decl_list END_DECL                                     { printf("Parser Complete\n"); print_symbol_table(); exit(0); }
+start       : BEGIN_DECL decl_list END_DECL BEGIN_BLOCK stmt_list END_BLOCK     { printf("Parse Complete\nPrefix: "); print_prefix($<node>5); printf("\n"); print_symbol_table(); parser_complete_handler($<node>5, output_path); exit(0); }
+            | BEGIN_DECL decl_list END_DECL stmt_list                           { printf("Parse Complete\nPrefix: "); print_prefix($<node>4); printf("\n"); print_symbol_table(); parser_complete_handler($<node>4, output_path); exit(0); }
+            | BEGIN_BLOCK stmt_list END_BLOCK                                   { printf("Parser Complete\nPrefix: "); print_prefix($<node>2); printf("\n"); print_symbol_table(); parser_complete_handler($<node>2, output_path); exit(0); }
+            | BEGIN_DECL decl_list END_DECL                                     { printf("Parser Complete\n"); print_symbol_table(); exit(0); }
             ;
 
 
