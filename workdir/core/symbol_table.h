@@ -37,7 +37,7 @@ symbol_table_t* create_symbol_table_entry(char* name, symbol_type_t type, int si
 symbol_table_t* create_symbol_table_array_entry(char* name, symbol_type_t inner_type, int outer_size, int inner_size);
 symbol_table_t* create_symbol_table_pointer_entry(char* name, symbol_type_t inner_type, int size);
 symbol_table_t* symbol_table_lookup(char* name);
-symbol_table_t* find_var_at_address(int address);
+// symbol_table_t* find_var_at_address(int address);
 void print_symbol_table();
 void create_table();
 void destroy_table();

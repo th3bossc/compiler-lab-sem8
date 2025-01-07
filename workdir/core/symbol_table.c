@@ -60,7 +60,7 @@ symbol_table_t* create_symbol_table_array_entry(char* name, symbol_type_t inner_
         outer_size,
         inner_size,
         inner_type,
-        get_binding(outer_size),
+        get_binding(outer_size*inner_size),
         NULL
     );
 
@@ -133,7 +133,7 @@ void print_symbol_table() {
                 type = "PTR[STR]";
             }
         }
-        printf("{ name: %s, type: %s, size: %d }\n", entry->name, type, entry->size);
+        printf("{ name: %s, type: %s, size: %d, content_size: %d }\n", entry->name, type, entry->size, entry->inner_size);
     }
 }
 

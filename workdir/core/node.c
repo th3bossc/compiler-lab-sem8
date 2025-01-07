@@ -74,7 +74,10 @@ node_t* create_arr_index_node(char* arr_name, node_t* index_node) {
 node_t* create_2d_arr_index_node(char* arr_name, node_t* outer_index_node, node_t* inner_index_node) {
     node_value_t data;
     node_t* id_node = create_id_node(arr_name);
-    node_t* index_node = create_operator_node('+', outer_index_node, inner_index_node);
+    symbol_table_t* var_details = symbol_table_lookup(arr_name);
+    int row_size = var_details->inner_size;
+    node_t* row_number_index_node = create_operator_node('*', outer_index_node, create_num_node(row_size));
+    node_t* index_node = create_operator_node('+', row_number_index_node, inner_index_node);
     node_t* node = create_node(data, SYMBOL_TYPE_NOT_SET, NODE_TYPE_ARR_INDEX, id_node, index_node);
     return node;
 }
