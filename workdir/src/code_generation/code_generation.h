@@ -2,8 +2,8 @@
 #define CODE_GEN_H
 
 #include <stdbool.h>
-#include "node.h"
-#include "instr_set.h"
+#include "../node/node.h"
+#include "../instr_set/instr_set.h"
 
 
 

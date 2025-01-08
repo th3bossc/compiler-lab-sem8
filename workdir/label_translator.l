@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
-#include "core/label_translation.h"
+#include "src/label_translation/label_translation.h"
 
 FILE* output_path = NULL;
 int instr_count = 0;

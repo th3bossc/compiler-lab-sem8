@@ -4,8 +4,8 @@
 #include <stdbool.h>
 #include <string.h>
 
-#include "core/code_generation.h"
-#include "core/symbol_table.h"
+#include "src/code_generation/code_generation.h"
+#include "src/symbol_table/symbol_table.h"
 
 extern FILE *yyin;
 void yyerror(const char*);

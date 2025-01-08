@@ -1,7 +1,7 @@
 %{
 #include <stdio.h>
 #include <stdlib.h>
-#include "core/node.h"
+#include "src/node/node.h"
 #include <stdbool.h>
 #include <string.h>
 #include "y.tab.h"
