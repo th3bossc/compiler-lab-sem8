@@ -1,198 +1,190 @@
-#include "node.h"
+#include "ast_node.h"
 
-// int evaluate_expression(node_t* node, int* vars);
-// int evaluate_bool_expression(node_t* node, int* vars);
-// int evaluate_int_expression(node_t* node, int* vars);
+// int evaluate_expression(ast_node_t* node, int* vars);
+// int evaluate_bool_expression(ast_node_t* node, int* vars);
+// int evaluate_int_expression(ast_node_t* node, int* vars);
 
-node_t* create_node(node_value_t data, symbol_type_t value_type, node_type_t node_type, node_t* left, node_t* right) {
-    node_t* node = (node_t*) malloc(sizeof(node_t));
+ast_node_t* create_node(node_value_t data, type_table_t* value_type, node_type_t node_type, ast_node_t* left, ast_node_t* right, ast_node_t* middle) {
+    ast_node_t* node = (ast_node_t*) malloc(sizeof(ast_node_t));
     node->data = data;
     node->value_type = value_type;
     node->node_type = node_type;
     node->left = left;
     node->right = right;
+    node->middle = middle;
 
     return node;
 }
 
 
-node_t* create_num_node(int val) {
+ast_node_t* create_num_node(int val) {
     node_value_t data;
     data.n_val = val;
-    node_t* node = create_node(data, SYMBOL_TYPE_INT, NODE_TYPE_INT, NULL, NULL);
+    ast_node_t* node = create_node(data, default_types->int_type, NODE_TYPE_INT, NULL, NULL, NULL);
     return node;
 }
 
-node_t* create_string_node(char* literal) {
+ast_node_t* create_string_node(char* literal) {
     node_value_t data;
     data.s_val = strdup(literal);
-    node_t* node = create_node(data, SYMBOL_TYPE_STR, NODE_TYPE_STRING, NULL, NULL);
+    ast_node_t* node = create_node(data, default_types->str_type, NODE_TYPE_STRING, NULL, NULL, NULL);
     return node;
 }
 
-node_t* create_id_node(char* var_name) {
+ast_node_t* create_id_node(char* var_name) {
     node_value_t data;
-    data.var_entry = symbol_table_lookup(var_name);
+    data.s_val = strdup(var_name);
+    ast_node_t* node = create_node(data, default_types->unset_type, NODE_TYPE_ID, NULL, NULL, NULL);
 
-    if (data.var_entry == NULL) {
-        perror("{node:create_id_node} Error undeclared variable");
-        exit(1);
-    }
-
-    node_t* node = create_node(data, data.var_entry->type, NODE_TYPE_ID, NULL, NULL);
-    return node;
 }
 
-node_t* create_operator_node(char op, node_t* left, node_t* right) {
+ast_node_t* create_operator_node(char op, ast_node_t* left, ast_node_t* right) {
     node_value_t data;
     data.c_val = op;
 
-    node_t* node = create_node(data, SYMBOL_TYPE_NOT_SET, NODE_TYPE_OPERATOR, left, right);
+    ast_node_t* node = create_node(data, default_types->unset_type, NODE_TYPE_OPERATOR, left, right, NULL);
     return node;
 } 
 
-node_t* create_write_node(node_t* expr) {
+ast_node_t* create_write_node(ast_node_t* expr) {
     node_value_t data;
-    node_t* node = create_node(data, SYMBOL_TYPE_INT, NODE_TYPE_WRITE, expr, NULL);
+    ast_node_t* node = create_node(data, default_types->int_type, NODE_TYPE_WRITE, expr, NULL, NULL);
     return node;
 }
 
-node_t* create_read_node(node_t* expr) {
+ast_node_t* create_read_node(ast_node_t* expr) {
     node_value_t data;
-    // node_t* node = create_node(data, SYMBOL_TYPE_INT, NODE_TYPE_READ, var_node, NULL);
-    node_t* node = create_node(data, SYMBOL_TYPE_INT, NODE_TYPE_READ, expr, NULL);
+    // ast_node_t* node = create_node(data, default_types->int_type, NODE_TYPE_READ, var_node, NULL);
+    ast_node_t* node = create_node(data, default_types->int_type, NODE_TYPE_READ, expr, NULL, NULL);
     return node;
 }
 
-node_t* create_arr_index_node(char* arr_name, node_t* index_node) {
+ast_node_t* create_arr_index_node(char* arr_name, ast_node_t* index_node) {
     node_value_t data;
-    node_t* id_node = create_id_node(arr_name);
-    node_t* node = create_node(data, SYMBOL_TYPE_NOT_SET, NODE_TYPE_ARR_INDEX, id_node, index_node);
+    ast_node_t* id_node = create_id_node(arr_name);
+    ast_node_t* node = create_node(data, default_types->unset_type, NODE_TYPE_ARR_INDEX, id_node, index_node, NULL);
     return node;
 }
 
-node_t* create_2d_arr_index_node(char* arr_name, node_t* outer_index_node, node_t* inner_index_node) {
+ast_node_t* create_2d_arr_index_node(char* arr_name, ast_node_t* outer_index_node, ast_node_t* inner_index_node) {
     node_value_t data;
-    node_t* id_node = create_id_node(arr_name);
-    symbol_table_t* var_details = symbol_table_lookup(arr_name);
+    ast_node_t* id_node = create_id_node(arr_name);
+    global_symbol_table_t* var_details = global_symbol_table_lookup(arr_name);
     int row_size = var_details->inner_size;
-    node_t* row_number_index_node = create_operator_node('*', outer_index_node, create_num_node(row_size));
-    node_t* index_node = create_operator_node('+', row_number_index_node, inner_index_node);
-    node_t* node = create_node(data, SYMBOL_TYPE_NOT_SET, NODE_TYPE_ARR_INDEX, id_node, index_node);
+    ast_node_t* row_number_index_node = create_operator_node('*', outer_index_node, create_num_node(row_size));
+    ast_node_t* index_node = create_operator_node('+', row_number_index_node, inner_index_node);
+    ast_node_t* node = create_node(data, default_types->unset_type, NODE_TYPE_ARR_INDEX, id_node, index_node, NULL);
     return node;
 }
 
-node_t* create_ptr_deref_node(node_t* expr) {
+ast_node_t* create_ptr_deref_node(ast_node_t* expr) {
     node_value_t data;
     data.c_val = '&';
-    node_t* node = create_node(data, SYMBOL_TYPE_PTR, NODE_TYPE_PTR_DEREF, expr, NULL);
+    ast_node_t* node = create_node(data, default_types->ptr_type, NODE_TYPE_PTR_DEREF, expr, NULL, NULL);
     return node;
 }
 
-node_t* create_ptr_ref_node(node_t* expr) {
+ast_node_t* create_ptr_ref_node(ast_node_t* expr) {
     node_value_t data;
     data.c_val = '*';
-    node_t* node = create_node(data, SYMBOL_TYPE_NOT_SET, NODE_TYPE_PTR_REF, expr, NULL);
+    ast_node_t* node = create_node(data, default_types->unset_type, NODE_TYPE_PTR_REF, expr, NULL, NULL);
 }
 
 
-node_t* create_connector_node(node_t* left, node_t* right) {
+ast_node_t* create_connector_node(ast_node_t* left, ast_node_t* right) {
     node_value_t data;
-    node_t* node = create_node(data, SYMBOL_TYPE_VOID, NODE_TYPE_CONNECTOR, left, right);
+    ast_node_t* node = create_node(data, default_types->void_type, NODE_TYPE_CONNECTOR, left, right, NULL);
     return node;
 }
 
-node_t* create_assignment_node(char* var_name, node_t* expr) {
-    node_value_t data;
-    data.c_val = '=';
-    node_t* id_node = create_id_node(var_name);
-    node_t* node = create_node(data, SYMBOL_TYPE_VOID, NODE_TYPE_ASSIGN, id_node, expr);
-    return node;
-}
-
-node_t* create_arr_assignment_node(char* var_name, node_t* index_node, node_t* expr) {
+ast_node_t* create_assignment_node(char* var_name, ast_node_t* expr) {
     node_value_t data;
     data.c_val = '=';
-    node_t* arr_node = create_arr_index_node(var_name, index_node);
-    node_t* node = create_node(data, SYMBOL_TYPE_VOID, NODE_TYPE_ASSIGN, arr_node, expr);
+    ast_node_t* id_node = create_id_node(var_name);
+    ast_node_t* node = create_node(data, default_types->void_type, NODE_TYPE_ASSIGN, id_node, expr, NULL);
     return node;
 }
 
-node_t* create_2d_arr_assignment_node(char* var_name, node_t* outer_index_node, node_t* inner_index_node, node_t* expr) {
+ast_node_t* create_arr_assignment_node(char* var_name, ast_node_t* index_node, ast_node_t* expr) {
     node_value_t data;
     data.c_val = '=';
-    node_t* arr_node = create_2d_arr_index_node(var_name, outer_index_node, inner_index_node);
-    node_t* node = create_node(data, SYMBOL_TYPE_VOID, NODE_TYPE_ASSIGN, arr_node, expr);
+    ast_node_t* arr_node = create_arr_index_node(var_name, index_node);
+    ast_node_t* node = create_node(data, default_types->void_type, NODE_TYPE_ASSIGN, arr_node, expr, NULL);
     return node;
 }
 
-node_t* create_ptr_assignment_node(char* var_name, node_t* expr) {
+ast_node_t* create_2d_arr_assignment_node(char* var_name, ast_node_t* outer_index_node, ast_node_t* inner_index_node, ast_node_t* expr) {
     node_value_t data;
     data.c_val = '=';
-    node_t* id_node = create_id_node(var_name);
-    node_t* node = create_node(data, SYMBOL_TYPE_INT, NODE_TYPE_PTR_REF, id_node, expr);
+    ast_node_t* arr_node = create_2d_arr_index_node(var_name, outer_index_node, inner_index_node);
+    ast_node_t* node = create_node(data, default_types->void_type, NODE_TYPE_ASSIGN, arr_node, expr, NULL);
     return node;
 }
 
-node_t* create_relop_node(char relop[], node_t* left, node_t* right) {
+ast_node_t* create_ptr_assignment_node(char* var_name, ast_node_t* expr) {
+    node_value_t data;
+    data.c_val = '=';
+    ast_node_t* id_node = create_id_node(var_name);
+    ast_node_t* node = create_node(data, default_types->int_type, NODE_TYPE_PTR_REF, id_node, expr, NULL);
+    return node;
+}
+
+ast_node_t* create_relop_node(char relop[], ast_node_t* left, ast_node_t* right) {
     node_value_t data;
     data.s_val = strdup(relop);
-    node_t* node = create_node(data, SYMBOL_TYPE_BOOL, NODE_TYPE_RELOP, left, right);
+    ast_node_t* node = create_node(data, default_types->bool_type, NODE_TYPE_RELOP, left, right, NULL);
     return node;
 }
 
-node_t* create_ifelse_node(node_t* condn, node_t* if_subtree, node_t* else_subtree) {
+ast_node_t* create_ifelse_node(ast_node_t* condn, ast_node_t* if_subtree, ast_node_t* else_subtree) {
     node_value_t data;
-    node_t* if_node = create_node(data, SYMBOL_TYPE_VOID, NODE_TYPE_IF, condn, if_subtree);
-    if (else_subtree == NULL) {
-        return if_node;
-    }
-    else {
-        node_t* connector_node = create_node(data, SYMBOL_TYPE_VOID, NODE_TYPE_IFELSE, if_node, else_subtree);
-        return connector_node;
-    }
+    node_type_t node_type = (else_subtree == NULL) ? NODE_TYPE_IF : NODE_TYPE_IFELSE;
+    ast_node_t* if_node = create_node(data, default_types->void_type, node_type, if_subtree, else_subtree, condn);
+    return if_node;
 }
 
-node_t* create_while_node(node_t* condn, node_t* body) {
+ast_node_t* create_while_node(ast_node_t* condn, ast_node_t* body) {
     node_value_t data;
-    node_t* node = create_node(data, SYMBOL_TYPE_VOID, NODE_TYPE_WHILE, condn, body);
+    ast_node_t* node = create_node(data, default_types->void_type, NODE_TYPE_WHILE, condn, body, NULL);
     return node;
 }
 
-node_t* create_do_while_node(node_t* condn, node_t* body) {
+ast_node_t* create_do_while_node(ast_node_t* condn, ast_node_t* body) {
     node_value_t data;
-    node_t* node = create_node(data, SYMBOL_TYPE_VOID, NODE_TYPE_DO_WHILE, condn, body);
+    ast_node_t* node = create_node(data, default_types->void_type, NODE_TYPE_DO_WHILE, condn, body, NULL);
     return node;
 }
 
-node_t* create_repeat_node(node_t* condn, node_t* body) {
+ast_node_t* create_repeat_node(ast_node_t* condn, ast_node_t* body) {
     node_value_t data;
-    node_t* node = create_node(data, SYMBOL_TYPE_VOID, NODE_TYPE_REPEAT, condn, body);
+    ast_node_t* node = create_node(data, default_types->void_type, NODE_TYPE_REPEAT, condn, body, NULL);
 }
 
-node_t* create_break_node() {
+ast_node_t* create_break_node() {
     node_value_t data;
-    node_t* node = create_node(data, SYMBOL_TYPE_VOID, NODE_TYPE_BREAK, NULL, NULL);
+    ast_node_t* node = create_node(data, default_types->void_type, NODE_TYPE_BREAK, NULL, NULL, NULL);
     return node;
 }
 
-node_t* create_continue_node() {
+ast_node_t* create_continue_node() {
     node_value_t data;
-    node_t* node = create_node(data, SYMBOL_TYPE_VOID, NODE_TYPE_CONTINUE, NULL, NULL);
+    ast_node_t* node = create_node(data, default_types->void_type, NODE_TYPE_CONTINUE, NULL, NULL, NULL);
     return node;
 }
 
-void destroy_node(node_t* node) {
+void destroy_node(ast_node_t* node) {
     if (node->left)
         destroy_node(node->left);
     if (node->right)
         destroy_node(node->right);
+    if (node->middle)
+        destroy_node(node->middle);
 
     free(node);
 }
 
 
-// int evaluate_expression(node_t* node, int* vars) {
+// int evaluate_expression(ast_node_t* node, int* vars) {
 //     if (node->value_type == NODE_VALUE_INT) {
 //         return evaluate_int_expression(node, vars);
 //     }
@@ -200,8 +192,8 @@ void destroy_node(node_t* node) {
 //         return evaluate_bool_expression(node, vars);
 //     }
 //     else if (node->value_type == NODE_VALUE_NOT_SET) {
-//         node_t* lval = node->left;
-//         node_t* rval = node->right;
+//         ast_node_t* lval = node->left;
+//         ast_node_t* rval = node->right;
 //         if (!lval || !rval) {
 //             perror("node:evaluate_expression: expr node doesn't have both left and right subtrees");
 //             exit(1);
@@ -224,7 +216,7 @@ void destroy_node(node_t* node) {
 // }
 
 
-// int evaluate_int_expression(node_t* node, int* vars) {
+// int evaluate_int_expression(ast_node_t* node, int* vars) {
 //     if (!node)
 //         return 0;
 
@@ -255,7 +247,7 @@ void destroy_node(node_t* node) {
 //     }
 // }
 
-// int evaluate_bool_expression(node_t* node, int* vars) {
+// int evaluate_bool_expression(ast_node_t* node, int* vars) {
 //     if (!node)
 //         return 0;
 
@@ -292,7 +284,7 @@ void destroy_node(node_t* node) {
 //     }
 // }
 
-// void evaluate_helper(node_t* node, int* vars) {
+// void evaluate_helper(ast_node_t* node, int* vars) {
 //     if (!node)
 //         return;
 
@@ -324,7 +316,7 @@ void destroy_node(node_t* node) {
 //         }
 //     }
 //     else if (node->node_type == NODE_TYPE_IFELSE) {
-//         node_t* if_node = node->left;
+//         ast_node_t* if_node = node->left;
 //         if (if_node->left->value_type != NODE_VALUE_BOOL) {
 //             perror("{node:evaluate_helper} IFELSE condn is not a boolean value");
 //             exit(1);
@@ -351,12 +343,12 @@ void destroy_node(node_t* node) {
 // }
 
 
-// void evaluate_node(node_t* node) {
+// void evaluate_node(ast_node_t* node) {
 //     int vars[26];
 //     evaluate_helper(node, vars);
 // }
 
-void print_prefix(node_t* node) {
+void print_prefix(ast_node_t* node) {
     if (!node)
         return;
     printf("( ");
@@ -371,7 +363,7 @@ void print_prefix(node_t* node) {
             printf("READ ");
             break;
         case NODE_TYPE_ID:
-            printf("%s ", node->data.var_entry->name);
+            printf("%s ", node->data.s_val);
             break;
         case NODE_TYPE_INT:
             printf("%d ", node->data.n_val);
@@ -413,7 +405,7 @@ void print_prefix(node_t* node) {
     printf(") ");
 }
 
-void print_postfix(node_t* node) {
+void print_postfix(ast_node_t* node) {
     if (!node)
         return;
 
@@ -431,7 +423,7 @@ void print_postfix(node_t* node) {
             printf("READ ");
             break;
         case NODE_TYPE_ID:
-            printf("%s ", node->data.var_entry->name);
+            printf("%s ", node->data.s_val);
             break;
         case NODE_TYPE_INT:
             printf("%d ", node->data.n_val);

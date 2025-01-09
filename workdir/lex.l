@@ -1,7 +1,7 @@
 %{
 #include <stdio.h>
 #include <stdlib.h>
-#include "src/node/node.h"
+#include "src/node/ast_node.h"
 #include <stdbool.h>
 #include <string.h>
 #include "y.tab.h"
@@ -11,17 +11,17 @@
 %%
 
 [0-9]+ {
-    yylval.val = atoi(yytext);
+    yylval.n_val = atoi(yytext);
     return NUM;
 }
 
 [+\-*\/&%]  {
-    yylval.op = *yytext;
+    yylval.c_val = *yytext;
 
     return *yytext;
 }
 
-[()=\[\]] {
+[()=\[\]{}] {
     return *yytext;
 }
 
@@ -37,8 +37,14 @@
 decl { return BEGIN_DECL; }
 enddecl { return END_DECL; }
 
-int { return INT; }
-str { return STR; }
+int {
+    yylval.s_val = strdup(yytext); 
+    return INT; 
+}
+str { 
+    yylval.s_val = strdup(yytext);
+    return STR; 
+}
 
 begin { return BEGIN_BLOCK; }
 end { return END_BLOCK; }
@@ -62,6 +68,8 @@ endrepeat { return ENDREPEAT; }
 break { return BREAK; }
 continue { return CONTINUE; }
 
+main { return MAIN; }
+
 ">" { return GT; }
 ">=" { return GTE; }
 "<" { return LT; }
@@ -70,13 +78,13 @@ continue { return CONTINUE; }
 "!=" { return NOT_EQUALS; }
 
 \"([^\"\\]|\\.)*\" {
-    yylval.var_name = strdup(yytext);
+    yylval.s_val = strdup(yytext);
     return STRING_LITERAL;
 }
 
 
 [a-zA-Z_]([a-zA-Z0-9_]*) {
-    yylval.var_name = strdup(yytext);
+    yylval.s_val = strdup(yytext);
     return ID;
 }
 

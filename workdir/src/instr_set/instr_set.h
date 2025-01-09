@@ -4,7 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "../node/node.h"
+#include "../node/ast_node.h"
 
 #define reg_index_t int
 #define label_index_t int

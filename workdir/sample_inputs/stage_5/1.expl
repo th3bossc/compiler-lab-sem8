@@ -1,0 +1,13 @@
+int main() {
+
+    decl
+    enddecl
+    
+    begin
+        if (5 > 3) then
+            write(5);
+        else 
+            write(3);
+        endif;
+    end
+}

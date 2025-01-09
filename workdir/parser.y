@@ -5,17 +5,20 @@
 #include <string.h>
 
 #include "src/code_generation/code_generation.h"
-#include "src/symbol_table/symbol_table.h"
+#include "src/symbol_table/global_symbol_table.h"
+#include "src/type_table/type_table.h"
 
 extern FILE *yyin;
 void yyerror(const char*);
 int yylex();
-void generate_code(node_t*, FILE*);
+void generate_code(ast_node_t*, FILE*);
 FILE* output_path = NULL;
 bool evaluate_mode = false;
-void parser_complete_handler(node_t*, FILE*);
+void parser_complete_handler(ast_node_t*, FILE*);
 
-symbol_type_t var_type;
+type_table_t* var_type;
+type_table_t* arg_type;
+type_table_t* ret_type;
 
 // #define YYDEBUG 1
 // int yydebug = 1;
@@ -33,6 +36,7 @@ symbol_type_t var_type;
 %token BREAK CONTINUE
 %token GT LT GTE LTE EQUALS NOT_EQUALS
 %token STRING_LITERAL
+%token MAIN
 
 %left GT LT GTE LTE
 %left EQUALS NOT_EQUALS
@@ -45,42 +49,123 @@ symbol_type_t var_type;
 
 
 %union {
-    node_t* node;
-    char op;
-    char* var_name;
-    int val;
+    ast_node_t* node;
+    decl_node_t* decl_node;
+    char c_val;
+    char* s_val;
+    int n_val;
 }
 
 %%
 
-start       : BEGIN_DECL decl_list END_DECL BEGIN_BLOCK stmt_list END_BLOCK     { printf("Parse Complete\nPrefix: "); print_prefix($<node>5); printf("\n"); print_symbol_table(); parser_complete_handler($<node>5, output_path); exit(0); }
-            | BEGIN_DECL decl_list END_DECL stmt_list                           { printf("Parse Complete\nPrefix: "); print_prefix($<node>4); printf("\n"); print_symbol_table(); parser_complete_handler($<node>4, output_path); exit(0); }
-            | BEGIN_BLOCK stmt_list END_BLOCK                                   { printf("Parser Complete\nPrefix: "); print_prefix($<node>2); printf("\n"); print_symbol_table(); parser_complete_handler($<node>2, output_path); exit(0); }
-            | BEGIN_DECL decl_list END_DECL                                     { printf("Parser Complete\n"); print_symbol_table(); exit(0); }
+// start       : BEGIN_DECL decl_list END_DECL BEGIN_BLOCK stmt_list END_BLOCK     { printf("Parse Complete\nPrefix: "); print_prefix($<node>5); printf("\n"); print_symbol_table(); parser_complete_handler($<node>5, output_path); exit(0); }
+//             | BEGIN_DECL decl_list END_DECL stmt_list                           { printf("Parse Complete\nPrefix: "); print_prefix($<node>4); printf("\n"); print_symbol_table(); parser_complete_handler($<node>4, output_path); exit(0); }
+//             | BEGIN_BLOCK stmt_list END_BLOCK                                   { printf("Parser Complete\nPrefix: "); print_prefix($<node>2); printf("\n"); print_symbol_table(); parser_complete_handler($<node>2, output_path); exit(0); }
+//             | BEGIN_DECL decl_list END_DECL                                     { printf("Parser Complete\n"); print_symbol_table(); exit(0); }
+//             ;
+
+program     : global_decl_block func_def_block main_def_block
+            | global_decl_block main_def_block
+            | main_def_block
             ;
 
 
+global_decl_block   : BEGIN_DECL global_decls_list END_DECL
+                    | BEGIN_DECL END_DECL
+                    ;
 
-decl_list   : decl_list decl        
-            | decl
+global_decls_list   : global_decls_list global_decls
+                    | global_decls
+                    ;
+
+global_decls    : type gloabl_id_list SEMICOLON
+                ;
+
+gloabl_id_list  : gloabl_id_list COMMA global_id 
+                | global_id 
+                ;
+
+global_id   : ID                                        { create_global_symbol_table_entry($<s_val>1, var_type, 1); }
+            | ID '[' NUM ']'                            { create_global_symbol_table_array_entry($<s_val>1, var_type, $<n_val>3, 1); }
+            | ID '[' NUM ']' '[' NUM ']'                { create_global_symbol_table_array_entry($<s_val>1, var_type, $<n_val>3, $<n_val>6); }
+            | '*' ID                                    { create_global_symbol_table_pointer_entry($<s_val>2, var_type, 1); }
+            | ret_type ID '(' func_params_list ')'      { create_global_symbol_table_func_entry($<s_val>2, ret_type, $<decl_node>4); }
+            | ret_type ID '(' ')'                       { create_global_symbol_table_func_entry($<s_val>2, ret_type, NULL); }
             ;
 
-decl        : type id_list SEMICOLON 
+local_decl_block    : BEGIN_DECL local_decls_list END_DECL      { $<decl_node>$ = $<decl_node>2; }
+                    | BEGIN_DECL END_DECL                       { $<decl_node>$ = NULL; }
+                    ;
+
+local_decls_list    : local_decls_list local_decls      { $<decl_node>$ = join_decl_nodes($<decl_node>1, $<decl_node>2); }
+                    | local_decls                       { $<decl_node>$ = $<decl_node>1; }
+                    ;
+
+
+local_decls     : type local_id_list SEMICOLON          { $<decl_node>$ = $<decl_node>2; }
+                ;
+
+
+local_id_list   : local_id_list COMMA ID    { $<decl_node>$ = join_decl_nodes($<decl_node>1, create_decl_node($<s_val>3, var_type)); }
+                | ID                        { $<decl_node>$ = create_decl_node($<s_val>1, var_type); }
+
+  
+type        : INT       { var_type = default_types->int_type; }
+            | STR       { var_type = default_types->str_type; }
             ;
 
-id_list     : id_list COMMA id_type 
-            | id_type
+
+ret_type    : INT       { ret_type = default_types->int_type; }
+            | STR       { ret_type = default_types->str_type; }
             ;
 
-id_type     : ID                            { create_symbol_table_entry($<var_name>1, var_type, 1); }
-            | ID '[' NUM ']'                { create_symbol_table_array_entry($<var_name>1, var_type, $<val>3, 1); }
-            | ID '[' NUM ']' '[' NUM ']'    { create_symbol_table_array_entry($<var_name>1, var_type, $<val>3, $<val>6); }
-            | '*' ID                        { create_symbol_table_pointer_entry($<var_name>2, var_type, 1); }
+// decl_list   : decl_list decl        
+//             | decl
+//             ;
+
+// decl        : type id_list SEMICOLON 
+//             ;
+
+// id_list     : id_list COMMA id_type 
+//             | id_type
+//             ;
+
+// id_type     : ID                            { create_symbol_table_entry($<s_val>1, var_type, 1); }
+//             | ID '[' NUM ']'                { create_symbol_table_array_entry($<s_val>1, var_type, $<n_val>3, 1); }
+//             | ID '[' NUM ']' '[' NUM ']'    { create_symbol_table_array_entry($<s_val>1, var_type, $<n_val>3, $<n_val>6); }
+//             | '*' ID                        { create_symbol_table_pointer_entry($<s_val>2, var_type, 1); }
+//             ; 
+
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////
+
+func_def_block  : func_def_block func_def
+                | func_def 
+                ;
+
+
+func_def    : ret_type ID '(' func_params_list ')' '{' local_decl_block func_body '}'
+            | ret_type ID '(' ')' '{' func_body '}'
             ; 
 
-type        : INT       { var_type = SYMBOL_TYPE_INT; }
-            | STR       { var_type = SYMBOL_TYPE_STR; }
+func_params_list    : func_params_list COMMA func_param     { $<decl_node>$ = join_decl_nodes($<decl_node>1, $<decl_node>3); }
+                    | func_param                            { $<decl_node>$ = $<decl_node>1; }
+                    ;
+
+func_param      : arg_type ID   { $<decl_node>$ = create_decl_node($<s_val>2, arg_type); }
+                ;
+
+arg_type    : INT       { arg_type = default_types->int_type; }
+            | STR       { arg_type = default_types->str_type; }
             ;
+
+func_body   : BEGIN_BLOCK stmt_list END_BLOCK       { $<node>$ = $<node>2; }
+            ;
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////
+
+main_def_block  : INT MAIN '(' ')' '{' local_decl_block func_body '}'
+                ;
 
 stmt_list   : stmt_list stmt                    { $<node>$ = create_connector_node($<node>1, $<node>2); }
             | stmt                              { $<node>$ = $<node>1; }
@@ -100,10 +185,10 @@ stmt_body   : stmt_assign                       { $<node>$ = $<node>1; }
             | CONTINUE                          { $<node>$ = create_continue_node(); }
             ;
 
-stmt_assign : ID '=' expr                               { $<node>$ = create_assignment_node($<var_name>1, $<node>3); }
-            | ID '[' expr ']' '=' expr                  { $<node>$ = create_arr_assignment_node($<var_name>1, $<node>3, $<node>6); }
-            | ID '[' expr ']' '[' expr ']' '=' expr     { $<node>$ = create_2d_arr_assignment_node($<var_name>1, $<node>3, $<node>6, $<node>9); }
-            | '*' ID '=' expr                             { $<node>$ = create_ptr_assignment_node($<var_name>2, $<node>4); }
+stmt_assign : ID '=' expr                               { $<node>$ = create_assignment_node($<s_val>1, $<node>3); }
+            | ID '[' expr ']' '=' expr                  { $<node>$ = create_arr_assignment_node($<s_val>1, $<node>3, $<node>6); }
+            | ID '[' expr ']' '[' expr ']' '=' expr     { $<node>$ = create_2d_arr_assignment_node($<s_val>1, $<node>3, $<node>6, $<node>9); }
+            | '*' ID '=' expr                           { $<node>$ = create_ptr_assignment_node($<s_val>2, $<node>4); }
             ;
 
 stmt_write  : WRITE '(' expr ')'                { $<node>$ = create_write_node($<node>3); }
@@ -126,25 +211,31 @@ stmt_do_while   : DO stmt_list WHILE '(' expr ')' ENDWHILE          { $<node>$ =
 stmt_repeat_until   : REPEAT stmt_list UNTIL '(' expr ')' ENDREPEAT { $<node>$ = create_repeat_node($<node>5, $<node>2); }
 
 
-expr        : expr '+' expr                     { $<node>$ = create_operator_node($<op>2, $<node>1, $<node>3); }
-            | expr '-' expr                     { $<node>$ = create_operator_node($<op>2, $<node>1, $<node>3); }
-            | expr '*' expr                     { $<node>$ = create_operator_node($<op>2, $<node>1, $<node>3); }
-            | expr '/' expr                     { $<node>$ = create_operator_node($<op>2, $<node>1, $<node>3); }
-            | expr '%' expr                     { $<node>$ = create_operator_node($<op>2, $<node>1, $<node>3); }
+expr        : expr '+' expr                     { $<node>$ = create_operator_node($<c_val>2, $<node>1, $<node>3); }
+            | expr '-' expr                     { $<node>$ = create_operator_node($<c_val>2, $<node>1, $<node>3); }
+            | expr '*' expr                     { $<node>$ = create_operator_node($<c_val>2, $<node>1, $<node>3); }
+            | expr '/' expr                     { $<node>$ = create_operator_node($<c_val>2, $<node>1, $<node>3); }
+            | expr '%' expr                     { $<node>$ = create_operator_node($<c_val>2, $<node>1, $<node>3); }
             | '(' expr ')'                      { $<node>$ = $<node>2; }
-            | NUM                               { $<node>$ = create_num_node($<val>1); }
-            | ID                                { $<node>$ = create_id_node($<var_name>1); }
+            | NUM                               { $<node>$ = create_num_node($<n_val>1); }
+            | ID                                { $<node>$ = create_id_node($<s_val>1); }
             | expr GT expr                      { $<node>$ = create_relop_node(">", $<node>1, $<node>3); }
             | expr LT expr                      { $<node>$ = create_relop_node("<", $<node>1, $<node>3); }
             | expr EQUALS expr                  { $<node>$ = create_relop_node("==", $<node>1, $<node>3); }
             | expr NOT_EQUALS expr              { $<node>$ = create_relop_node("!=", $<node>1, $<node>3); }
             | expr GTE expr                     { $<node>$ = create_relop_node(">=", $<node>1, $<node>3); }
             | expr LTE expr                     { $<node>$ = create_relop_node("<=", $<node>1, $<node>3); }
-            | STRING_LITERAL                    { $<node>$ = create_string_node($<var_name>1); }
+            | STRING_LITERAL                    { $<node>$ = create_string_node($<s_val>1); }
             | '*' expr                          { $<node>$ = create_ptr_ref_node($<node>2); }
             | '&' expr                          { $<node>$ = create_ptr_deref_node($<node>2); }
-            | ID '[' expr ']'                   { $<node>$ = create_arr_index_node($<var_name>1, $<node>3); }
-            | ID '[' expr ']' '[' expr ']'      { $<node>$ = create_2d_arr_index_node($<var_name>1, $<node>3, $<node>6); }
+            | ID '[' expr ']'                   { $<node>$ = create_arr_index_node($<s_val>1, $<node>3); }
+            | ID '[' expr ']' '[' expr ']'      { $<node>$ = create_2d_arr_index_node($<s_val>1, $<node>3, $<node>6); }
+            | ID '(' args_list ')'
+            | ID '(' ')'
+            ;
+
+args_list   : args_list COMMA expr 
+            | expr 
             ;
 
 %%
@@ -153,7 +244,7 @@ void yyerror(const char* s) {
     fprintf(stderr, "\nError: %s\n", s);
 } 
 
-void parser_complete_handler(node_t* node, FILE* fp) {
+void parser_complete_handler(ast_node_t* node, FILE* fp) {
     if (evaluate_mode) {
         // evaluate_node(node);
     }
