@@ -3,10 +3,12 @@
 
 global_symbol_table_t* global_symbol_table_tail;
 
-void create_table() {
+void create_global_table() {
     global_symbol_table = NULL;
     global_symbol_table_tail = NULL;
     free_address = 4096;
+
+    global_symbol_table_t* main_node = create_global_symbol_table_func_entry("main", default_types->int_type, NULL);
 }
 
 int get_binding(int size) {
@@ -116,16 +118,17 @@ global_symbol_table_t* create_global_symbol_table_pointer_entry(char* name, type
 }
 
 global_symbol_table_t* create_global_symbol_table_func_entry(char* name, type_table_t* return_type, decl_node_t* params_list) {
+    type_table_t* func_type = default_types->func_type;
     global_symbol_table_t* entry = create_entry(
         name,
+        func_type,
+        0,
+        0,
         return_type,
-        0,
-        0,
-        NULL,
         get_binding(0),
         NULL
     );
-
+    entry->params = params_list;
     if (!global_symbol_table) {
         global_symbol_table = entry;
         global_symbol_table_tail = entry;
@@ -163,6 +166,6 @@ void destroy_table_entry(global_symbol_table_t* table_entry) {
     free(table_entry);
 }
 
-void destroy_table() {
+void destroy_global_table() {
     destroy_table_entry(global_symbol_table);
 }

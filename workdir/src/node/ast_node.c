@@ -35,6 +35,7 @@ ast_node_t* create_id_node(char* var_name) {
     node_value_t data;
     data.s_val = strdup(var_name);
     ast_node_t* node = create_node(data, default_types->unset_type, NODE_TYPE_ID, NULL, NULL, NULL);
+    return node;
 
 }
 
@@ -88,12 +89,19 @@ ast_node_t* create_ptr_ref_node(ast_node_t* expr) {
     node_value_t data;
     data.c_val = '*';
     ast_node_t* node = create_node(data, default_types->unset_type, NODE_TYPE_PTR_REF, expr, NULL, NULL);
+    return node;
 }
 
 
 ast_node_t* create_connector_node(ast_node_t* left, ast_node_t* right) {
     node_value_t data;
     ast_node_t* node = create_node(data, default_types->void_type, NODE_TYPE_CONNECTOR, left, right, NULL);
+    return node;
+}
+
+ast_node_t* create_program_node(ast_node_t* left, ast_node_t* right) {
+    node_value_t data;
+    ast_node_t* node = create_node(data, default_types->void_type, NODE_TYPE_PROGRAM, left, right, NULL);
     return node;
 }
 
@@ -158,7 +166,41 @@ ast_node_t* create_do_while_node(ast_node_t* condn, ast_node_t* body) {
 ast_node_t* create_repeat_node(ast_node_t* condn, ast_node_t* body) {
     node_value_t data;
     ast_node_t* node = create_node(data, default_types->void_type, NODE_TYPE_REPEAT, condn, body, NULL);
+    return node;
 }
+
+ast_node_t* create_func_call_node(char* func_name, args_node_t* args_list) {
+    node_value_t data;
+    data.s_val = strdup(func_name);
+    ast_node_t* node = create_node(data, default_types->void_type, NODE_TYPE_FUNC_CALL, NULL, NULL, NULL);
+    node->args_list = args_list;
+    return node;
+}
+
+ast_node_t* create_func_body_node(char* func_name, type_table_t* return_type, decl_node_t* params_list, decl_node_t* local_decls, ast_node_t* body) {
+    node_value_t data;
+    data.s_val = strdup(func_name);
+    global_symbol_table_t* entry = global_symbol_table_lookup(func_name);
+    if (!entry || (entry->type != default_types->func_type)) {
+        yyerror("{ast_node:create_func_body_node} the variable is not a function");
+        exit(1);
+    } 
+
+    if (entry->inner_type != return_type) {
+        yyerror("{ast_node:create_func_body_node} return types don't match");
+        exit(1);
+    }
+
+    if (!verify_params_list(params_list, entry->params)) {
+        yyerror("{ast_node:create_func_body_node} params of declaration and defintion of function doesn't match");
+        exit(1);
+    }
+    entry->local_decls = local_decls;
+    ast_node_t* node = create_node(data, entry->type, NODE_TYPE_FUNC_DECL, NULL, NULL, body);
+    node->func_details = entry;
+    return node;
+}
+
 
 ast_node_t* create_break_node() {
     node_value_t data;
@@ -195,12 +237,12 @@ void destroy_node(ast_node_t* node) {
 //         ast_node_t* lval = node->left;
 //         ast_node_t* rval = node->right;
 //         if (!lval || !rval) {
-//             perror("node:evaluate_expression: expr node doesn't have both left and right subtrees");
+//             yyerror("node:evaluate_expression: expr node doesn't have both left and right subtrees");
 //             exit(1);
 //         }
 
 //         if (lval->value_type != rval->value_type) {
-//             perror("node:evaluate_expression: mismatched types");
+//             yyerror("node:evaluate_expression: mismatched types");
 //             exit(1);
 //         }
 
@@ -307,7 +349,7 @@ void destroy_node(ast_node_t* node) {
 //     }
 //     else if (node->node_type == NODE_TYPE_IF) {
 //         if (node->left->value_type != NODE_VALUE_BOOL) {
-//             perror("{node:evaluate_helper} IF condn is not a boolean value");
+//             yyerror("{node:evaluate_helper} IF condn is not a boolean value");
 //             exit(1);
 //         }
 //         int cond_output = evaluate_expression(node->left, vars);
@@ -318,7 +360,7 @@ void destroy_node(ast_node_t* node) {
 //     else if (node->node_type == NODE_TYPE_IFELSE) {
 //         ast_node_t* if_node = node->left;
 //         if (if_node->left->value_type != NODE_VALUE_BOOL) {
-//             perror("{node:evaluate_helper} IFELSE condn is not a boolean value");
+//             yyerror("{node:evaluate_helper} IFELSE condn is not a boolean value");
 //             exit(1);
 //         }
 //         int cond_output = evaluate_expression(if_node->left, vars);
@@ -331,7 +373,7 @@ void destroy_node(ast_node_t* node) {
 //     }
 //     else if (node->node_type == NODE_TYPE_WHILE) {
 //         if (node->left->value_type != NODE_VALUE_BOOL) {
-//             perror("{node:evaluate_helper} WHILE condn is not a boolean value");
+//             yyerror("{node:evaluate_helper} WHILE condn is not a boolean value");
 //             exit(1);
 //         }
 //         while(evaluate_expression(node->left, vars)) {
@@ -351,16 +393,16 @@ void destroy_node(ast_node_t* node) {
 void print_prefix(ast_node_t* node) {
     if (!node)
         return;
-    printf("( ");
+    // printf("( ");
     switch (node->node_type) {
-        case NODE_TYPE_CONNECTOR:
-            printf("CONNECTOR ");
-            break;
         case NODE_TYPE_WRITE:
             printf("WRITE ");
             break;
         case NODE_TYPE_READ:
             printf("READ ");
+            break;
+        case NODE_TYPE_CONNECTOR:
+            printf("CONNECTOR ");
             break;
         case NODE_TYPE_ID:
             printf("%s ", node->data.s_val);
@@ -374,11 +416,14 @@ void print_prefix(ast_node_t* node) {
         case NODE_TYPE_OPERATOR:
             printf("%c ", node->data.c_val);
             break;
-        case NODE_TYPE_IFELSE:
-            printf("IFELSE ");
+        case NODE_TYPE_RELOP:
+            printf("%s ", node->data.s_val);
             break;
         case NODE_TYPE_IF:
             printf("IF ");
+            break;
+        case NODE_TYPE_IFELSE:
+            printf("IFELSE ");
             break;
         case NODE_TYPE_WHILE:
             printf("WHILE ");
@@ -395,14 +440,30 @@ void print_prefix(ast_node_t* node) {
         case NODE_TYPE_CONTINUE:
             printf("CONTINUE ");
             break;
-        case NODE_TYPE_RELOP:
-            printf("%s ", node->data.s_val);
+        case NODE_TYPE_ARR_INDEX:
+            printf("ARR_INDEX %s ", node->data.s_val);
+            break;
+        case NODE_TYPE_PTR_REF:
+            printf("PTR REF %s", node->data.s_val);
+            break;
+        case NODE_TYPE_PTR_DEREF:
+            printf("PTR DEREF %s ", node->data.s_val);
+            break;
+        case NODE_TYPE_FUNC_CALL:
+            printf("CALL FUNC %s", node->data.s_val);
+            break;
+        case NODE_TYPE_FUNC_DECL:
+            printf("DECL FUNC %s ", node->data.s_val);
+            break;
+        case NODE_TYPE_PROGRAM:
+            printf("PGM CONNECTOR ");
             break;
     }
 
     print_prefix(node->left);
+    print_prefix(node->middle);
     print_prefix(node->right);
-    printf(") ");
+    // printf(") ");
 }
 
 void print_postfix(ast_node_t* node) {

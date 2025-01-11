@@ -30,3 +30,16 @@ local_symbol_table_t* local_symbol_table_lookup(local_symbol_table_t* table, cha
 
     return NULL;
 }
+
+
+local_symbol_table_t* append_to_local_table(local_symbol_table_t* head, local_symbol_table_t* new_item) {
+    local_symbol_table_t* tail = head;
+    if (tail == NULL) {
+        return new_item;
+    }
+    while(tail->next != NULL) {
+        tail = tail->next;
+    }
+    tail->next = new_item;
+    return head;
+}

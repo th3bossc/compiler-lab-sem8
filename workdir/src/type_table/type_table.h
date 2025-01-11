@@ -34,6 +34,7 @@ struct primitive_types_s {
     type_table_t* void_type;
     type_table_t* bool_type;
     type_table_t* unset_type;
+    type_table_t* func_type;
 };
 
 type_table_t* type_table;

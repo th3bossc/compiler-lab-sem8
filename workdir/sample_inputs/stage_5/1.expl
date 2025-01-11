@@ -1,13 +1,10 @@
-int main() {
+decl
+    int a[10];
+enddecl
 
-    decl
-    enddecl
-    
+int main() {
     begin
-        if (5 > 3) then
-            write(5);
-        else 
-            write(3);
-        endif;
+        a[1] = 12;
+        write(a[1]);
     end
 }

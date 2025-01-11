@@ -40,10 +40,16 @@ type_table_t* create_type_table_entry(char* name, int size) {
     entry->num_fields = 0;
     entry->size = size;
 
-    type_table_t* tail;
-    while(tail->next != NULL)
-        tail = tail->next;
-    tail->next = entry;
+    if (type_table == NULL) {
+        type_table = entry;
+    }
+    else {
+        type_table_t* tail = type_table;
+        while(tail->next != NULL)
+            tail = tail->next;
+        tail->next = entry;
+
+    }
     
     return entry;
 }
@@ -76,13 +82,17 @@ field_list_t* get_field_entry(type_table_t* struct_name, int field_index) {
     return NULL;
 }
 
-initialize_type_table() {
+void initialize_type_table() {
+    type_table = NULL;
+
+
     type_table_t* int_type = create_type_table_entry("int", 1);
     type_table_t* str_type = create_type_table_entry("str", 1);
     type_table_t* bool_type = create_type_table_entry("bool", 1);
     type_table_t* void_type = create_type_table_entry("void", 0);
     type_table_t* arr_type = create_type_table_entry("arr", 1);
     type_table_t* ptr_type = create_type_table_entry("ptr", 1);
+    type_table_t* func_type = create_type_table_entry("func", 0);
     type_table_t* unset_type = create_type_table_entry("unset", 0);
 
     default_types = (primitive_types_t*) malloc(sizeof(primitive_types_t));
@@ -94,4 +104,5 @@ initialize_type_table() {
     default_types->arr_type = arr_type;
     default_types->ptr_type = ptr_type;
     default_types->unset_type = unset_type;
+    default_types->func_type = func_type;
 }

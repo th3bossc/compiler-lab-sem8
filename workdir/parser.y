@@ -7,6 +7,7 @@
 #include "src/code_generation/code_generation.h"
 #include "src/symbol_table/global_symbol_table.h"
 #include "src/type_table/type_table.h"
+#include "src/node/args_node.h"
 
 extern FILE *yyin;
 void yyerror(const char*);
@@ -18,7 +19,7 @@ void parser_complete_handler(ast_node_t*, FILE*);
 
 type_table_t* var_type;
 type_table_t* arg_type;
-type_table_t* ret_type;
+type_table_t* return_type;
 
 // #define YYDEBUG 1
 // int yydebug = 1;
@@ -51,6 +52,7 @@ type_table_t* ret_type;
 %union {
     ast_node_t* node;
     decl_node_t* decl_node;
+    args_node_t* args_node;
     char c_val;
     char* s_val;
     int n_val;
@@ -64,9 +66,9 @@ type_table_t* ret_type;
 //             | BEGIN_DECL decl_list END_DECL                                     { printf("Parser Complete\n"); print_symbol_table(); exit(0); }
 //             ;
 
-program     : global_decl_block func_def_block main_def_block
-            | global_decl_block main_def_block
-            | main_def_block
+program     : global_decl_block func_def_block  { printf("Parse complete\n"); print_prefix($<node>2); parser_complete_handler($<node>2, output_path); }
+            | global_decl_block                 { printf("Parse complete\n"); }
+            | func_def_block                    { printf("Parse complete\n"); print_prefix($<node>1); parser_complete_handler($<node>1, output_path); }
             ;
 
 
@@ -89,8 +91,8 @@ global_id   : ID                                        { create_global_symbol_t
             | ID '[' NUM ']'                            { create_global_symbol_table_array_entry($<s_val>1, var_type, $<n_val>3, 1); }
             | ID '[' NUM ']' '[' NUM ']'                { create_global_symbol_table_array_entry($<s_val>1, var_type, $<n_val>3, $<n_val>6); }
             | '*' ID                                    { create_global_symbol_table_pointer_entry($<s_val>2, var_type, 1); }
-            | ret_type ID '(' func_params_list ')'      { create_global_symbol_table_func_entry($<s_val>2, ret_type, $<decl_node>4); }
-            | ret_type ID '(' ')'                       { create_global_symbol_table_func_entry($<s_val>2, ret_type, NULL); }
+            | ID '(' func_params_list ')'               { create_global_symbol_table_func_entry($<s_val>2, var_type, $<decl_node>4); }
+            | ID '(' ')'                                { create_global_symbol_table_func_entry($<s_val>2, var_type, NULL); }
             ;
 
 local_decl_block    : BEGIN_DECL local_decls_list END_DECL      { $<decl_node>$ = $<decl_node>2; }
@@ -115,8 +117,8 @@ type        : INT       { var_type = default_types->int_type; }
             ;
 
 
-ret_type    : INT       { ret_type = default_types->int_type; }
-            | STR       { ret_type = default_types->str_type; }
+ret_type    : INT       { return_type = default_types->int_type; }
+            | STR       { return_type = default_types->str_type; }
             ;
 
 // decl_list   : decl_list decl        
@@ -139,13 +141,15 @@ ret_type    : INT       { ret_type = default_types->int_type; }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
-func_def_block  : func_def_block func_def
-                | func_def 
+func_def_block  : func_def_block func_def       { $<node>$ = create_program_node($<node>1, $<node>2); }
+                | func_def                      { $<node>$ = $<node>1; }
                 ;
 
 
-func_def    : ret_type ID '(' func_params_list ')' '{' local_decl_block func_body '}'
-            | ret_type ID '(' ')' '{' func_body '}'
+func_def    : ret_type ID '(' func_params_list ')' '{' local_decl_block func_body '}'       { $<node>$ = create_func_body_node($<s_val>2, return_type, $<decl_node>4, $<decl_node>7, $<node>8); }
+            | ret_type ID '(' func_params_list ')' '{' func_body '}'                        { $<node>$ = create_func_body_node($<s_val>2, return_type, $<decl_node>4, NULL, $<node>7); }
+            | ret_type ID '(' ')' '{' local_decl_block func_body '}'                        { $<node>$ = create_func_body_node($<s_val>2, return_type, NULL, $<decl_node>6, $<node>7); }
+            | ret_type ID '(' ')' '{' func_body '}'                                         { $<node>$ = create_func_body_node($<s_val>2, return_type, NULL, NULL, $<node>6); }
             ; 
 
 func_params_list    : func_params_list COMMA func_param     { $<decl_node>$ = join_decl_nodes($<decl_node>1, $<decl_node>3); }
@@ -164,14 +168,11 @@ func_body   : BEGIN_BLOCK stmt_list END_BLOCK       { $<node>$ = $<node>2; }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
-main_def_block  : INT MAIN '(' ')' '{' local_decl_block func_body '}'
-                ;
-
 stmt_list   : stmt_list stmt                    { $<node>$ = create_connector_node($<node>1, $<node>2); }
             | stmt                              { $<node>$ = $<node>1; }
             ;
 
-stmt        : stmt_body SEMICOLON             { $<node>$ = $<node>1; }
+stmt        : stmt_body SEMICOLON               { $<node>$ = $<node>1; }
             ;
 
 stmt_body   : stmt_assign                       { $<node>$ = $<node>1; }
@@ -194,7 +195,7 @@ stmt_assign : ID '=' expr                               { $<node>$ = create_assi
 stmt_write  : WRITE '(' expr ')'                { $<node>$ = create_write_node($<node>3); }
             ;
 
-stmt_read   : READ '(' expr ')'                   { $<node>$ = create_read_node($<node>3); }
+stmt_read   : READ '(' expr ')'                 { $<node>$ = create_read_node($<node>3); }
             ;
 
 
@@ -230,12 +231,12 @@ expr        : expr '+' expr                     { $<node>$ = create_operator_nod
             | '&' expr                          { $<node>$ = create_ptr_deref_node($<node>2); }
             | ID '[' expr ']'                   { $<node>$ = create_arr_index_node($<s_val>1, $<node>3); }
             | ID '[' expr ']' '[' expr ']'      { $<node>$ = create_2d_arr_index_node($<s_val>1, $<node>3, $<node>6); }
-            | ID '(' args_list ')'
-            | ID '(' ')'
+            | ID '(' args_list ')'              { $<node>$ = create_func_call_node($<s_val>1, $<args_node>3); }
+            | ID '(' ')'                        { $<node>$ = create_func_call_node($<s_val>1, NULL); }
             ;
 
-args_list   : args_list COMMA expr 
-            | expr 
+args_list   : args_list COMMA expr              { $<args_node>$ = join_args_nodes($<args_node>1, create_args_node($<node>3)); }
+            | expr                              { $<args_node>$ = create_args_node($<node>1); }
             ;
 
 %%
@@ -255,7 +256,8 @@ void parser_complete_handler(ast_node_t* node, FILE* fp) {
 
 
 int main(int argc, char* argv[]) {
-    create_table();
+    initialize_type_table();
+    create_global_table();
     for (int i = 0; i < argc; i++) {
         if (strcmp(argv[i], "--input") == 0 && (i+1) < argc) {
             FILE* fp = fopen(argv[i+1], "r");

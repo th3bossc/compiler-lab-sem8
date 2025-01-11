@@ -68,7 +68,6 @@ endrepeat { return ENDREPEAT; }
 break { return BREAK; }
 continue { return CONTINUE; }
 
-main { return MAIN; }
 
 ">" { return GT; }
 ">=" { return GTE; }

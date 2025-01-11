@@ -181,10 +181,9 @@ void post_library_call(reg_index_t ret_val, reg_index_t free_reg, FILE* fp) {
 
 
 
-void reset_registers() {
-    for (reg_index_t i = 0; i < NUM_REGISTERS; i++)
-        free_registers[i] = true;
-}
+void reset_registers(int* num_used_regs) {
+    (*num_used_regs) = 0;
+}   
 
 
 void reset_labels() {
@@ -192,8 +191,10 @@ void reset_labels() {
 }
 
 
-void free_register(reg_index_t reg) {
-    free_registers[reg] = true;
+void free_used_register(int* num_used_regs) {
+    if (*num_used_regs > 0) {
+        (*num_used_regs) -= 1;
+    }
 }
 
 label_index_t get_label() {
@@ -201,14 +202,20 @@ label_index_t get_label() {
     return used_labels;
 }
 
-reg_index_t get_free_register() {
-    for (reg_index_t i = 0; i < NUM_REGISTERS; i++) {
-        if (free_registers[i] == true) {
-            free_registers[i] = false;
-            return i;
-        }
+reg_index_t get_free_register(int* num_used_regs) {
+    // for (reg_index_t i = 0; i < NUM_REGISTERS; i++) {
+    //     if (free_registers[i] == true) {
+    //         free_registers[i] = false;
+    //         return i;
+    //     }
+    // }
+
+    if (*num_used_regs < NUM_REGISTERS) {
+        int ret_val = *num_used_regs;
+        (*num_used_regs) += 1;
+        return ret_val;
     }
 
-    perror("Out of registers");
+    yyerror("Out of registers");
     exit(1);
 }

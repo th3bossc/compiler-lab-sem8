@@ -37,7 +37,11 @@ else
     ./output --input $input_path --output temp.xsm
 fi 
 
-./label_translator --input temp.xsm --output $output_path
-echo "file saved to $output_path"
+if [ $? -eq 0 ]; then 
+    ./label_translator --input temp.xsm --output $output_path
+    echo "file saved to $output_path"
+else 
+    echo "compilation failed"
+fi
 
 rm temp.xsm

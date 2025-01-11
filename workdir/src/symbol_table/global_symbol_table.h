@@ -37,8 +37,8 @@ global_symbol_table_t* create_global_symbol_table_func_entry(char* name, type_ta
 global_symbol_table_t* global_symbol_table_lookup(char* name);
 
 void print_symbol_table();
-void create_table();
-void destroy_table();
+void create_global_table();
+void destroy_global_table();
 
 
 #endif

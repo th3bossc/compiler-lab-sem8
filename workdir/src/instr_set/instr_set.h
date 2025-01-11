@@ -12,12 +12,11 @@
 #define ERR_NO_REGS -1
 
 // util funcs
-bool free_registers[NUM_REGISTERS];
 label_index_t used_labels;
 
-reg_index_t get_free_register();
-void free_register(reg_index_t reg);
-void reset_registers();
+reg_index_t get_free_register(int* num_used_regs);
+void free_used_register(int* num_used_regs);
+void reset_registers(int* num_used_regs);
 void reset_labels();
 label_index_t get_label();
 
