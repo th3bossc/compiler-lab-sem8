@@ -89,7 +89,7 @@ ast_node_t* create_break_node();
 ast_node_t* create_continue_node();
 
 void destroy_node(ast_node_t* node);
-void evaluate_node(ast_node_t* node);
+// void evaluate_node(ast_node_t* node);
 void print_prefix(ast_node_t* node);
 void print_postfix(ast_node_t* node);
 

@@ -66,9 +66,9 @@ type_table_t* return_type;
 //             | BEGIN_DECL decl_list END_DECL                                     { printf("Parser Complete\n"); print_symbol_table(); exit(0); }
 //             ;
 
-program     : global_decl_block func_def_block  { printf("Parse complete\n"); print_prefix($<node>2); parser_complete_handler($<node>2, output_path); }
-            | global_decl_block                 { printf("Parse complete\n"); }
-            | func_def_block                    { printf("Parse complete\n"); print_prefix($<node>1); parser_complete_handler($<node>1, output_path); }
+program     : global_decl_block func_def_block  { printf("Parse complete [p1]\n"); print_prefix($<node>2); printf("\nGlobal Symbol Table: "); print_symbol_table(); parser_complete_handler($<node>2, output_path); }
+            | global_decl_block                 { printf("Parse complete [p2]\n"); printf("\nGlobal Symbol Table: "); print_symbol_table(); }
+            | func_def_block                    { printf("Parse complete [p3]\n"); print_prefix($<node>1); parser_complete_handler($<node>1, output_path); }
             ;
 
 
@@ -263,12 +263,14 @@ int main(int argc, char* argv[]) {
             FILE* fp = fopen(argv[i+1], "r");
             if (fp) {
                 yyin = fp;
+                printf("input: %p\n", fp);
             }
         }
         else if (strcmp(argv[i], "--output") == 0 && (i+1) < argc) {
             FILE* fp = fopen(argv[i+1], "w");
             if (fp) {
                 output_path = fp;
+                printf("output: %p\n", fp);
             }
         }
         else if (strcmp(argv[i], "--evaluate") == 0) {

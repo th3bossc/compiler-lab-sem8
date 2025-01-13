@@ -12,6 +12,7 @@ gcc -g lex.yy.c y.tab.c \
     src/node/decl_node.c \
     src/symbol_table/global_symbol_table.c \
     src/symbol_table/local_symbol_table.c \
+    src/symbol_table/var_details.c \
     src/type_table/type_table.c \
     -lfl -o output
 

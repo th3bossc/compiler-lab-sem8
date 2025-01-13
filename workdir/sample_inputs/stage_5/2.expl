@@ -1,0 +1,69 @@
+decl
+int arr1[5][5], arr2[5][5], output[5][5];
+int i, j, k, row_sum;
+enddecl
+
+int main() {
+    begin 
+        write("arr 1");
+        i = 0;
+        j = 0;
+        k = 0;
+        while(i < 5) do
+            j = 0;
+            while(j < 5) do
+                arr1[i][j] = k;
+                k = k+1;
+                j = j+1;
+            endwhile;
+            i = i+1;
+        endwhile;
+
+        write("arr 2");
+        i = 0;
+        j = 0;
+        k = 50;
+        while(i < 5) do
+            j = 0;
+            while(j < 5) do
+                arr2[i][j] = k;
+                k = k+1;
+                j = j+1;
+            endwhile;
+            i = i+1;
+        endwhile;
+
+
+        write("hello");
+        i = 0;
+        j = 0;
+        k = 0;
+        while(i < 5) do
+            j = 0;
+            while(j < 5) do 
+                k = 0;
+                row_sum = 0;
+                while(k < 5) do 
+                    row_sum = row_sum + (arr1[i][k]*arr2[k][j]);
+                    k = k+1;
+                endwhile;
+                output[i][j] = row_sum;
+                j = j+1;
+            endwhile;
+            i = i+1;
+        endwhile;
+
+        write("hello");
+        i = 0;
+        j = 0;
+        k = 0;
+        while(i < 5) do
+            j = 0;
+            while(j < 5) do
+                write(output[i][j]);
+                j = j+1;
+            endwhile;
+            i = i+1;
+        endwhile;
+    end
+}

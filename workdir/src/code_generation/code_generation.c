@@ -30,7 +30,7 @@ type_table_t* is_type_compatible(type_table_t* type1, type_table_t* type2) {
 // }
 
 
-reg_index_t load_var_data_to_reg(char* name, reg_index_t offset_reg, FILE* target_file, local_symbol_table_t* l_symbol_table, int* num_free_regs) {
+reg_index_t load_var_data_to_reg(char* name, reg_index_t offset_reg, FILE* target_file, local_symbol_table_t* l_symbol_table, int* num_used_regs) {
     local_symbol_table_t* local_entry = local_symbol_table_lookup(l_symbol_table, name);
     if (local_entry == NULL) {
         global_symbol_table_t* global_entry = global_symbol_table_lookup(name);
@@ -42,16 +42,17 @@ reg_index_t load_var_data_to_reg(char* name, reg_index_t offset_reg, FILE* targe
             // MOV R1, addr
             // ADD r1, r2
             // MOV R1, [R1]
-            reg_index_t free_reg = get_free_register(num_free_regs);
+            reg_index_t free_reg = get_free_register(num_used_regs);
             int addr = global_entry->binding;
             immediate_addressing_int(free_reg, addr, target_file);
-            add_registers(free_reg, offset_reg, target_file);
+            if (offset_reg != -1)
+                add_registers(free_reg, offset_reg, target_file);
             register_indirect_addressing_load(free_reg, free_reg, target_file);
             return free_reg;
         }
     }
     else {
-        reg_index_t free_reg = get_free_register(num_free_regs);
+        reg_index_t free_reg = get_free_register(num_used_regs);
         int relative_addr = local_entry->binding;
         // MOV R1, BP
         // ADD R1, relative_addr
@@ -64,7 +65,7 @@ reg_index_t load_var_data_to_reg(char* name, reg_index_t offset_reg, FILE* targe
 }
 
 
-reg_index_t load_var_addr_to_reg(char* name, reg_index_t offset_reg, FILE* target_file, local_symbol_table_t* l_symbol_table, int* num_free_regs) {
+reg_index_t load_var_addr_to_reg(char* name, reg_index_t offset_reg, FILE* target_file, local_symbol_table_t* l_symbol_table, int* num_used_regs) {
     local_symbol_table_t* local_entry = local_symbol_table_lookup(l_symbol_table, name);
     if (local_entry == NULL) {
         global_symbol_table_t* global_entry = global_symbol_table_lookup(name);
@@ -75,39 +76,22 @@ reg_index_t load_var_addr_to_reg(char* name, reg_index_t offset_reg, FILE* targe
         else {
             // MOV R1, addr
             // ADD R1, r2
-            reg_index_t free_reg = get_free_register(num_free_regs);
+            reg_index_t free_reg = get_free_register(num_used_regs);
             int addr = global_entry->binding;
             immediate_addressing_int(free_reg, addr, target_file);
-            add_registers(free_reg, offset_reg, target_file);
+            if (offset_reg != -1)
+                add_registers(free_reg, offset_reg, target_file);
             return free_reg;
         }
     }
     else {
-        reg_index_t free_reg = get_free_register(num_free_regs);
+        reg_index_t free_reg = get_free_register(num_used_regs);
         int relative_addr = local_entry->binding;
         // MOV R1, BP
         // ADD R1, relative_addr
         fprintf(target_file, "MOV R%d, BP\n", free_reg);
         add_immediate(free_reg, relative_addr, target_file);
         return free_reg;
-    }
-}
-
-
-type_table_t* get_type(char* name, local_symbol_table_t* l_symbol_table) {
-    local_symbol_table_t* local_entry = local_symbol_table_lookup(l_symbol_table, name);
-    if (local_entry == NULL) {
-        global_symbol_table_t* global_entry = global_symbol_table_lookup(name);
-        if (global_entry == NULL) {
-            yyerror("{code_generation:get_type} Variable not declared");
-            exit(1);
-        }
-        else {
-            return global_entry->type;
-        }
-    }
-    else {
-        return local_entry->type;
     }
 }
 
@@ -122,12 +106,30 @@ type_table_t* get_inner_type(char* name) {
     }
 }
 
+reg_index_t generate_id_expr_code(ast_node_t* node, FILE* target_file, int* num_used_regs, local_symbol_table_t* l_symbol_table) {
+    if (!node) {
+        yyerror("{code_generation:generate_id_expr_code} Something went wrong");
+        exit(1);
+    }
+
+
+    type_table_t* id_type = get_var_type(node->data.s_val, l_symbol_table);
+    node->value_type = id_type;
+
+    reg_index_t id_val = load_var_data_to_reg(node->data.s_val, -1, target_file, l_symbol_table, num_used_regs);
+    return id_val;
+}
+
 reg_index_t generate_expression_code(ast_node_t* node, FILE* target_file, int* num_used_regs, local_symbol_table_t* l_symbol_table) {
     if (!node) {
         yyerror("{code_generation:generate_expression_code} Something weong wrong");
         exit(1);
     }
 
+
+    if (node->node_type == NODE_TYPE_ID) {
+        return generate_id_expr_code(node, target_file, num_used_regs, l_symbol_table);
+    }
     if (node->node_type == NODE_TYPE_PTR_DEREF) {
         return generate_ptr_deref_code(node, target_file, num_used_regs, l_symbol_table);
     }
@@ -145,6 +147,7 @@ reg_index_t generate_expression_code(ast_node_t* node, FILE* target_file, int* n
         return generate_boolean_code(node, target_file, num_used_regs, l_symbol_table);
     }
     else if (node->value_type == default_types->str_type) {
+        
         return generate_string_code(node, target_file, num_used_regs, l_symbol_table);
     }
     else if (node->value_type == default_types->unset_type) {
@@ -182,7 +185,7 @@ reg_index_t generate_boolean_code(ast_node_t* node, FILE* target_file, int* num_
         return free_reg;
     }
     else if (node->node_type == NODE_TYPE_ID) {
-        reg_index_t free_reg = load_var_data_to_reg(node->data.s_val, 0, target_file, l_symbol_table, num_used_regs);
+        reg_index_t free_reg = load_var_data_to_reg(node->data.s_val, -1, target_file, l_symbol_table, num_used_regs);
         return free_reg;
     }
 
@@ -195,32 +198,32 @@ reg_index_t generate_boolean_code(ast_node_t* node, FILE* target_file, int* num_
 
     if (strcmp(relop, ">") == 0) {
         greater_than(l_val_reg, r_val_reg, target_file);
-        free_used_register(num_used_regs);
+        free_used_register(num_used_regs, r_val_reg);
         return l_val_reg;
     }
     else if (strcmp(relop, ">=") == 0) {
         greater_than_or_equals(l_val_reg, r_val_reg, target_file);
-        free_used_register(num_used_regs);
+        free_used_register(num_used_regs, r_val_reg);
         return l_val_reg;
     } 
     else if (strcmp(relop, "<") == 0) {
         less_than(l_val_reg, r_val_reg, target_file);
-        free_used_register(num_used_regs);
+        free_used_register(num_used_regs, r_val_reg);
         return l_val_reg;
     } 
     else if (strcmp(relop, "<=") == 0) {
         less_than_or_equals(l_val_reg, r_val_reg, target_file);
-        free_used_register(num_used_regs);
+        free_used_register(num_used_regs, r_val_reg);
         return l_val_reg;
     } 
     else if (strcmp(relop, "==") == 0) {
         equals(l_val_reg, r_val_reg, target_file);
-        free_used_register(num_used_regs);
+        free_used_register(num_used_regs, r_val_reg);
         return l_val_reg;  
     } 
     else if (strcmp(relop, "!=") == 0) {
         not_equals(l_val_reg, r_val_reg, target_file);
-        free_used_register(num_used_regs);
+        free_used_register(num_used_regs, r_val_reg);
         return l_val_reg;
     }  
 
@@ -235,7 +238,7 @@ reg_index_t generate_arr_index_code(ast_node_t* node, FILE* target_file, int* nu
     }
 
     ast_node_t* id_node = node->left;
-    if ((id_node->node_type != NODE_TYPE_ID) || (id_node->value_type != default_types->arr_type)) {
+    if ((id_node->node_type != NODE_TYPE_ID) || get_var_type(id_node->data.s_val, l_symbol_table) != default_types->arr_type) {
         yyerror("{code_generation:generate_arr_index_code}: indexing can only be done on arrays");
         exit(1);
     }
@@ -253,7 +256,7 @@ reg_index_t generate_arr_index_code(ast_node_t* node, FILE* target_file, int* nu
     // add_immediate(expr_output, id_address, target_file);
     // register_indirect_addressing_load(expr_output, expr_output, target_file);
     reg_index_t arr_data = load_var_data_to_reg(id_node->data.s_val, expr_output, target_file, l_symbol_table, num_used_regs);
-    free_used_register(num_used_regs);
+    free_used_register(num_used_regs, expr_output);
     return arr_data;
 }
 
@@ -270,7 +273,7 @@ reg_index_t generate_arithmetic_code(ast_node_t* node, FILE* target_file, int* n
         return free_reg;
     }
     else if (node->node_type == NODE_TYPE_ID) {
-        reg_index_t free_reg = load_var_data_to_reg(node->data.s_val, 0, target_file, l_symbol_table, num_used_regs);
+        reg_index_t free_reg = load_var_data_to_reg(node->data.s_val, -1, target_file, l_symbol_table, num_used_regs);
         return free_reg;
 
     }
@@ -304,7 +307,7 @@ reg_index_t generate_arithmetic_code(ast_node_t* node, FILE* target_file, int* n
             yyerror("unknown operator");
             exit(1);
     }
-    free_used_register(num_used_regs);
+    free_used_register(num_used_regs, r_val_reg);
     return l_val_reg;
 }
 
@@ -313,6 +316,7 @@ reg_index_t generate_ptr_ref_code(ast_node_t* node, FILE* target_file, int* num_
         yyerror("{code_generation:genreate_ptr_ref_code} Something went wrong");
         exit(1);
     }
+
 
     reg_index_t expr_output = generate_expression_code(node->left, target_file, num_used_regs, l_symbol_table);
     if (node->left->value_type != default_types->ptr_type) {
@@ -341,7 +345,7 @@ reg_index_t generate_ptr_deref_code(ast_node_t* node, FILE* target_file, int* nu
     // reg_index_t free_reg = get_free_register(num_used_regs);
     // node->value_type = id_node->value_type;
     // immediate_addressing_int(free_reg, address, target_file);
-    reg_index_t free_reg = load_var_addr_to_reg(id_node->data.s_val, 0, target_file, l_symbol_table, num_used_regs);
+    reg_index_t free_reg = load_var_addr_to_reg(id_node->data.s_val, -1, target_file, l_symbol_table, num_used_regs);
     return free_reg;
 }
 
@@ -368,9 +372,10 @@ void generate_assignment_code(ast_node_t* node, FILE* target_file, int* num_used
     ast_node_t* id_node = node->left;
     // int addr = get_addr(id_node->data.s_val, l_symbol_table);
     // direct_addressing_store(addr, expr_output, target_file);
-    reg_index_t free_reg = load_var_addr_to_reg(id_node->data.s_val, 0, target_file, l_symbol_table, num_used_regs);
+    reg_index_t free_reg = load_var_addr_to_reg(id_node->data.s_val, -1, target_file, l_symbol_table, num_used_regs);
     register_indirect_addressing_store(free_reg, expr_output, target_file);
-    free_used_register(num_used_regs);
+    free_used_register(num_used_regs, free_reg);
+    free_used_register(num_used_regs, expr_output);
 }
 
 void generate_arr_assignment_code(ast_node_t* node, FILE* target_file, int* num_used_regs, local_symbol_table_t* l_symbol_table) {
@@ -381,6 +386,7 @@ void generate_arr_assignment_code(ast_node_t* node, FILE* target_file, int* num_
     }
 
     ast_node_t* id_node = arr_index_node->left;
+    id_node->value_type = get_var_type(id_node->data.s_val, l_symbol_table);
     if ((id_node->node_type != NODE_TYPE_ID) || (id_node->value_type != default_types->arr_type)) {
         yyerror("{code_generation:generate_arr_assignment_code}: indexing can only be done on arrays");
         exit(1);
@@ -405,9 +411,9 @@ void generate_arr_assignment_code(ast_node_t* node, FILE* target_file, int* num_
     }
 
     register_indirect_addressing_store(arr_index_loc, expr_output, target_file);
-    free_used_register(num_used_regs);
-    free_used_register(num_used_regs);
-    free_used_register(num_used_regs);
+    free_used_register(num_used_regs, index_output);
+    free_used_register(num_used_regs, expr_output);
+    free_used_register(num_used_regs, arr_index_loc);
 
     return;
 }
@@ -419,7 +425,7 @@ void generate_ptr_assignment_code(ast_node_t* node, FILE* target_file, int* num_
     }
 
     ast_node_t* id_node = node->left;
-    if (id_node->value_type != default_types->ptr_type) {
+    if (get_var_type(id_node->data.s_val, l_symbol_table) != default_types->ptr_type) {
         yyerror("{code_generation:generate_ptr_assignment_codee} Can't use '*' operator on a non-pointer variable");
         exit(1);
     }
@@ -434,10 +440,10 @@ void generate_ptr_assignment_code(ast_node_t* node, FILE* target_file, int* num_
     // reg_index_t free_reg = get_free_register(num_used_regs);
     // int address = get_addr(id_node->data.s_val, l_symbol_table);
     // direct_addressing_load(address, free_reg, target_file);
-    reg_index_t ptr_data = load_var_data_to_reg(id_node->data.s_val, 0, target_file, l_symbol_table, num_used_regs);
+    reg_index_t ptr_data = load_var_data_to_reg(id_node->data.s_val, -1, target_file, l_symbol_table, num_used_regs);
     register_indirect_addressing_store(ptr_data, expr_output, target_file);
-    free_used_register(num_used_regs);
-    free_used_register(num_used_regs);
+    free_used_register(num_used_regs, expr_output);
+    free_used_register(num_used_regs, ptr_data);
 }
 
 reg_index_t generate_print_code(ast_node_t* node, FILE* target_file, int* num_used_regs, local_symbol_table_t* l_symbol_table) {
@@ -449,16 +455,14 @@ reg_index_t generate_print_code(ast_node_t* node, FILE* target_file, int* num_us
     reg_index_t ret_val;
     if (node->left->node_type == NODE_TYPE_ID) {
         ast_node_t* id_node = node->left;
-        // int addr = get_addr(id_node->data.s_val, l_symbol_table);
-        reg_index_t addr_reg = load_var_data_to_reg(id_node->data.s_val, 0, target_file, l_symbol_table, num_used_regs);
-        // ret_val = print_addr(addr, target_file, num_used_regs);
+        reg_index_t addr_reg = load_var_data_to_reg(id_node->data.s_val, -1, target_file, l_symbol_table, num_used_regs);
         ret_val = print_register(addr_reg, target_file, num_used_regs);
-        free_used_register(num_used_regs);
+        free_used_register(num_used_regs, addr_reg);
     }
     else {
         reg_index_t expr_output = generate_expression_code(node->left, target_file, num_used_regs, l_symbol_table);
         ret_val = print_register(expr_output, target_file, num_used_regs);
-        free_used_register(num_used_regs);
+        free_used_register(num_used_regs, expr_output);
     }
 
     return ret_val;
@@ -475,9 +479,9 @@ reg_index_t generate_read_code(ast_node_t* node, FILE* target_file, int* num_use
         ast_node_t* id_node = node->left;
         // int addr = get_addr(id_node->data.s_val, l_symbol_table);
         // ret_val = read_into_addr(addr, target_file, num_used_regs);
-        reg_index_t addr_reg = load_var_addr_to_reg(id_node->data.s_val, 0, target_file, l_symbol_table, num_used_regs);
+        reg_index_t addr_reg = load_var_addr_to_reg(id_node->data.s_val, -1, target_file, l_symbol_table, num_used_regs);
         ret_val = read_into_reg_addr(addr_reg, target_file, num_used_regs);
-        free_used_register(num_used_regs);
+        free_used_register(num_used_regs, addr_reg);
         return ret_val;
     }
     else if (node->left->node_type == NODE_TYPE_ARR_INDEX) {
@@ -497,8 +501,8 @@ reg_index_t generate_read_code(ast_node_t* node, FILE* target_file, int* num_use
         // free_used_register(num_used_regs);
         reg_index_t addr_reg = load_var_addr_to_reg(id_node->data.s_val, free_reg, target_file, l_symbol_table, num_used_regs);
         ret_val = read_into_reg_addr(addr_reg, target_file, num_used_regs);
-        free_used_register(num_used_regs);
-        free_used_register(num_used_regs);
+        free_used_register(num_used_regs, free_reg);
+        free_used_register(num_used_regs, addr_reg);
 
         return ret_val;
     }
@@ -523,7 +527,7 @@ void generate_if_code(ast_node_t* node, FILE* target_file, int* num_used_regs, l
     jump_zero_to_label(condition_output, exit_if_label, target_file);
     generate_statement_structure(body_node, target_file, num_used_regs, l_symbol_table, break_label, continue_label);
     add_label(exit_if_label, target_file);
-    free_used_register(num_used_regs);
+    free_used_register(num_used_regs, condition_output);
 }
 
 void generate_ifelse_code(ast_node_t* node, FILE* target_file, int* num_used_regs, label_index_t* break_label, label_index_t* continue_label, local_symbol_table_t* l_symbol_table) {
@@ -550,7 +554,7 @@ void generate_ifelse_code(ast_node_t* node, FILE* target_file, int* num_used_reg
     add_label(else_body_label, target_file);
     generate_statement_structure(else_body_node, target_file, num_used_regs, l_symbol_table, break_label, continue_label);
     add_label(exit_if_label, target_file);
-    free_used_register(num_used_regs);
+    free_used_register(num_used_regs, condition_output);
 }
 
 void generate_while_code(ast_node_t* node, FILE* target_file, int* num_used_regs, local_symbol_table_t* l_symbol_table) {
@@ -575,7 +579,7 @@ void generate_while_code(ast_node_t* node, FILE* target_file, int* num_used_regs
     generate_statement_structure(body_node, target_file, num_used_regs, l_symbol_table, &exit_while_label, &condn_label);
     jump_to_label(condn_label, target_file);
     add_label(exit_while_label, target_file);
-    free_used_register(num_used_regs);
+    free_used_register(num_used_regs, condition_output);
 } 
 
 void generate_do_while_code(ast_node_t* node, FILE* target_file, int* num_used_regs, local_symbol_table_t* l_symbol_table) {
@@ -601,7 +605,7 @@ void generate_do_while_code(ast_node_t* node, FILE* target_file, int* num_used_r
     reg_index_t expr_output = generate_expression_code(node->left, target_file, num_used_regs, l_symbol_table);
     jump_not_zero_to_label(expr_output, start_label, target_file);
     add_label(end_do_while_label, target_file);
-    free_used_register(num_used_regs);
+    free_used_register(num_used_regs, expr_output);
 }
 
 void generate_repeat_code(ast_node_t* node, FILE* target_file, int* num_used_regs, local_symbol_table_t* l_symbol_table) {
@@ -628,7 +632,7 @@ void generate_repeat_code(ast_node_t* node, FILE* target_file, int* num_used_reg
     reg_index_t expr_output = generate_expression_code(node->left, target_file, num_used_regs, l_symbol_table);
     jump_zero_to_label(expr_output, start_label, target_file);
     add_label(end_repeat_label, target_file);
-    free_used_register(num_used_regs);
+    free_used_register(num_used_regs, expr_output);
 }
 
 void generate_program_structure(ast_node_t* node, FILE* target_file) {
@@ -689,15 +693,15 @@ void generate_function_code(ast_node_t* node, FILE* target_file) {
         i++;
 
 
-        fprintf(target_file, "MOV BP, SP\n");
-        fprintf(target_file, "ADD SP, %d\n", i);
 
     }
-
+    fprintf(target_file, "MOV BP, SP\n");
+    fprintf(target_file, "ADD SP, %d\n", i);
 
     add_label(func_label, target_file);
-    int num_used_registers = 0;
-    generate_statement_structure(node->middle, target_file, &num_used_registers, local_symbol_table, NULL, NULL);
+    int* num_used_registers = (int*) calloc(NUM_REGISTERS, sizeof(int));
+    reset_registers(num_used_registers);
+    generate_statement_structure(node->middle, target_file, num_used_registers, local_symbol_table, NULL, NULL);
 }
 
 
@@ -716,11 +720,11 @@ void generate_statement_structure(ast_node_t* node, FILE* target_file, int* num_
     }
     else if (node->node_type == NODE_TYPE_WRITE) {
         reg_index_t ret_val = generate_print_code(node, target_file, num_used_regs, l_symbol_table);
-        free_used_register(num_used_regs);
+        free_used_register(num_used_regs, ret_val);
     }
     else if (node->node_type == NODE_TYPE_READ) {
         reg_index_t ret_val = generate_read_code(node, target_file, num_used_regs, l_symbol_table);
-        free_used_register(num_used_regs);
+        free_used_register(num_used_regs, ret_val);
     }
     else if (node->node_type == NODE_TYPE_ASSIGN) {
         generate_assignment_code(node, target_file, num_used_regs, l_symbol_table);
@@ -755,8 +759,8 @@ reg_index_t print_register(reg_index_t data, FILE* target_file, int* num_used_re
 
     call_library_function(func_name, arg1, data, data, data, target_file);
 
-    free_used_register(num_used_regs);
-    free_used_register(num_used_regs);
+    free_used_register(num_used_regs, func_name);
+    free_used_register(num_used_regs, arg1);
 
     reg_index_t ret_val = get_free_register(num_used_regs);
     post_library_call(ret_val, data, target_file);
@@ -769,7 +773,7 @@ reg_index_t print_addr(int addr, FILE* target_file, int* num_used_regs) {
     
     direct_addressing_load(addr, free_reg, target_file);
     reg_index_t ret_val = print_register(free_reg, target_file, num_used_regs);
-    free_used_register(num_used_regs);
+    free_used_register(num_used_regs, free_reg);
 
     return ret_val;
 }
@@ -785,12 +789,12 @@ reg_index_t read_into_addr(int addr, FILE* target_file, int* num_used_regs) {
 
     call_library_function(func_name, arg1, arg2, arg2, arg2, target_file);
 
-    free_used_register(num_used_regs);
-    free_used_register(num_used_regs);
+    free_used_register(num_used_regs, func_name);
+    free_used_register(num_used_regs, arg1);
 
     reg_index_t ret_val = get_free_register(num_used_regs);
     post_library_call(ret_val, arg2, target_file);
-    free_used_register(num_used_regs);
+    free_used_register(num_used_regs, arg2);
 
     return ret_val;
 }
@@ -804,12 +808,12 @@ reg_index_t read_into_reg_addr(reg_index_t reg_index, FILE* target_file, int* nu
 
     call_library_function(func_name, arg1, reg_index, reg_index, reg_index, target_file);
 
-    free_used_register(num_used_regs);
-    free_used_register(num_used_regs);
+    free_used_register(num_used_regs, func_name);
+    free_used_register(num_used_regs, arg1);
 
     reg_index_t ret_val = get_free_register(num_used_regs);
     post_library_call(ret_val, reg_index, target_file);
-    free_used_register(num_used_regs);
+    // free_used_register(num_used_regs);
 
     return ret_val;
 }
@@ -821,7 +825,7 @@ void exit_program(FILE* target_file, int* num_used_regs) {
     reg_index_t ret_val = get_free_register(num_used_regs);
     call_library_function(func_name, ret_val, ret_val, ret_val, ret_val, target_file);
 
-    free_used_register(num_used_regs);
+    free_used_register(num_used_regs, func_name);
     post_library_call(ret_val, ret_val, target_file);
 }
 
@@ -838,6 +842,7 @@ void generate_program(ast_node_t* body, FILE* target_file) {
     int free_address = get_binding(0);
     fprintf(target_file, "MOV SP, %d\n", free_address);
     generate_program_structure(body, target_file);
-    int free_registers = 0;
-    exit_program(target_file, &free_registers);
+    int* free_registers = (int*) calloc(NUM_REGISTERS, sizeof(int));
+    reset_registers(free_registers);
+    exit_program(target_file, free_registers);
 }

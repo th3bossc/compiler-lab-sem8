@@ -6,6 +6,7 @@
 #include "../node/ast_node.h"
 #include "../instr_set/instr_set.h"
 #include "../type_table/type_table.h"
+#include "../symbol_table/var_details.h"
 
 
 
@@ -20,6 +21,7 @@ reg_index_t generate_arr_index_code(ast_node_t* node, FILE* target_file, int* nu
 reg_index_t generate_expression_code(ast_node_t* node, FILE* target_file, int* num_used_regs, local_symbol_table_t* l_symbol_table);
 reg_index_t generate_ptr_deref_code(ast_node_t* node, FILE* target_file, int* num_used_regs, local_symbol_table_t* l_symbol_table);
 reg_index_t generate_ptr_ref_code(ast_node_t* node, FILE* target_file, int* num_used_regs, local_symbol_table_t* l_symbol_table);
+reg_index_t generate_id_expr_code(ast_node_t* node, FILE* target_file, int* num_used_regs, local_symbol_table_t* l_symbol_table);
 
 void generate_assignment_code(ast_node_t* node, FILE* target_file, int* num_used_regs, local_symbol_table_t* l_symbol_table);
 void generate_arr_assignment_code(ast_node_t* node, FILE* target_file, int* num_used_regs, local_symbol_table_t* l_symbol_table);

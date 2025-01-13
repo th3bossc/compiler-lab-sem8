@@ -125,7 +125,7 @@ global_symbol_table_t* create_global_symbol_table_func_entry(char* name, type_ta
         0,
         0,
         return_type,
-        get_binding(0),
+        -1,
         NULL
     );
     entry->params = params_list;
@@ -153,7 +153,7 @@ global_symbol_table_t* global_symbol_table_lookup(char* name) {
 
 void print_symbol_table() {
     for (global_symbol_table_t* entry = global_symbol_table; entry != NULL; entry = entry->next) {
-        printf("{ name: %s, type: %s, size: %d, content_size: %d }\n", entry->name, entry->type->name, entry->size, entry->inner_size);
+        printf("{ name: %s, type: %s, size: %d, content_size: %d, loc: %d }\n", entry->name, entry->type->name, entry->size, entry->inner_size, entry->binding);
     }
 }
 

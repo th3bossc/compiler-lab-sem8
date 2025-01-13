@@ -1,10 +1,17 @@
 decl
-    int a[10];
+    int a[10][10];
+    int i, j;
 enddecl
 
 int main() {
     begin
-        a[1] = 12;
-        write(a[1]);
+        i = 2;
+        j = 1;
+        a[1][2] = 12;
+        a[i][j] = 5;
+        write(i);
+        write(j);
+        write(a[i][j]);
+        write(a[j][i]);
     end
 }
