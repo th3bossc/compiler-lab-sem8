@@ -67,6 +67,10 @@ endrepeat { return ENDREPEAT; }
 
 break { return BREAK; }
 continue { return CONTINUE; }
+return { return RETURN; }
+
+AND { return AND; }
+OR { return OR; }
 
 
 ">" { return GT; }

@@ -1,0 +1,31 @@
+int main() {
+    decl 
+        int a, b, c;
+    enddecl
+
+    begin
+        read(a);
+        read(b);
+        read(c);
+
+        if ((a >= b) AND (a >= c)) then 
+            write(a);
+        else
+            if ((b >= a) AND (b >= c)) then
+                write(b);
+            else 
+                write(c);
+            endif;
+        endif;
+
+
+        read(a);
+        read(b);
+        if ((a%2 == 0) OR (b%2) == 0) then
+            write("one is even");
+        else 
+            write("none is even");
+        endif;
+        return 0;
+    end
+}

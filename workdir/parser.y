@@ -8,6 +8,7 @@
 #include "src/symbol_table/global_symbol_table.h"
 #include "src/type_table/type_table.h"
 #include "src/node/args_node.h"
+#include "src/instr_set/instr_set.h"
 
 extern FILE *yyin;
 void yyerror(const char*);
@@ -35,10 +36,12 @@ type_table_t* return_type;
 %token WHILE DO ENDWHILE
 %token REPEAT UNTIL ENDREPEAT
 %token BREAK CONTINUE
-%token GT LT GTE LTE EQUALS NOT_EQUALS
+%token GT LT GTE LTE EQUALS NOT_EQUALS AND OR
 %token STRING_LITERAL
-%token MAIN
+%token RETURN
 
+%left OR
+%left AND
 %left GT LT GTE LTE
 %left EQUALS NOT_EQUALS
 
@@ -91,8 +94,8 @@ global_id   : ID                                        { create_global_symbol_t
             | ID '[' NUM ']'                            { create_global_symbol_table_array_entry($<s_val>1, var_type, $<n_val>3, 1); }
             | ID '[' NUM ']' '[' NUM ']'                { create_global_symbol_table_array_entry($<s_val>1, var_type, $<n_val>3, $<n_val>6); }
             | '*' ID                                    { create_global_symbol_table_pointer_entry($<s_val>2, var_type, 1); }
-            | ID '(' func_params_list ')'               { create_global_symbol_table_func_entry($<s_val>2, var_type, $<decl_node>4); }
-            | ID '(' ')'                                { create_global_symbol_table_func_entry($<s_val>2, var_type, NULL); }
+            | ID '(' func_params_list ')'               { create_global_symbol_table_func_entry($<s_val>1, var_type, $<decl_node>3); }
+            | ID '(' ')'                                { create_global_symbol_table_func_entry($<s_val>1, var_type, NULL); }
             ;
 
 local_decl_block    : BEGIN_DECL local_decls_list END_DECL      { $<decl_node>$ = $<decl_node>2; }
@@ -141,8 +144,8 @@ ret_type    : INT       { return_type = default_types->int_type; }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
-func_def_block  : func_def_block func_def       { $<node>$ = create_program_node($<node>1, $<node>2); }
-                | func_def                      { $<node>$ = $<node>1; }
+func_def_block  : func_def_block func_def       { printf("func yay"); $<node>$ = create_program_node($<node>1, $<node>2); }
+                | func_def                      { printf("func yay"); $<node>$ = $<node>1; }
                 ;
 
 
@@ -184,6 +187,10 @@ stmt_body   : stmt_assign                       { $<node>$ = $<node>1; }
             | stmt_repeat_until                 { $<node>$ = $<node>1; }
             | BREAK                             { $<node>$ = create_break_node(); }
             | CONTINUE                          { $<node>$ = create_continue_node(); }
+            | RETURN                            { $<node>$ = create_func_return_node(NULL); }
+            | RETURN expr                       { $<node>$ = create_func_return_node($<node>2); }
+            | ID '(' ')'                        { $<node>$ = create_func_call_node($<s_val>1, NULL); }
+            | ID '(' args_list ')'              { $<node>$ = create_func_call_node($<s_val>1, $<args_node>3); }
             ;
 
 stmt_assign : ID '=' expr                               { $<node>$ = create_assignment_node($<s_val>1, $<node>3); }
@@ -226,6 +233,8 @@ expr        : expr '+' expr                     { $<node>$ = create_operator_nod
             | expr NOT_EQUALS expr              { $<node>$ = create_relop_node("!=", $<node>1, $<node>3); }
             | expr GTE expr                     { $<node>$ = create_relop_node(">=", $<node>1, $<node>3); }
             | expr LTE expr                     { $<node>$ = create_relop_node("<=", $<node>1, $<node>3); }
+            | expr AND expr                     { $<node>$ = create_relop_node("AND", $<node>1, $<node>3); }
+            | expr OR expr                      { $<node>$ = create_relop_node("OR", $<node>1, $<node>3); }
             | STRING_LITERAL                    { $<node>$ = create_string_node($<s_val>1); }
             | '*' expr                          { $<node>$ = create_ptr_ref_node($<node>2); }
             | '&' expr                          { $<node>$ = create_ptr_deref_node($<node>2); }
@@ -258,6 +267,7 @@ void parser_complete_handler(ast_node_t* node, FILE* fp) {
 int main(int argc, char* argv[]) {
     initialize_type_table();
     create_global_table();
+    reset_labels();
     for (int i = 0; i < argc; i++) {
         if (strcmp(argv[i], "--input") == 0 && (i+1) < argc) {
             FILE* fp = fopen(argv[i+1], "r");

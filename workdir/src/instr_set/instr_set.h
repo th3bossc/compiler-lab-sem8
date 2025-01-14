@@ -85,5 +85,7 @@ void add_breakpoint(FILE* fp);          // BRKP
 // compound instrs
 void call_library_function(reg_index_t func_name, reg_index_t arg1, reg_index_t arg2, reg_index_t arg3, reg_index_t ret_val, FILE* fp);
 void post_library_call(reg_index_t ret_val, reg_index_t free_reg, FILE* fp);
+void save_machine_state(int* num_used_regs, FILE* fp);
+void restore_machine_state(int* num_used_regs, FILE* fp);
 
 #endif

@@ -1,6 +1,14 @@
 decl
-    int *p, *q, a, b, c;
+    int *p, *q, a, b, c, d;
+    int secondfunc(int a);
 enddecl
+
+int secondfunc(int a) {
+    begin
+        a = 5;
+        return a;
+    end
+}
 
 
 int main() {
@@ -13,5 +21,9 @@ int main() {
         write(a);
         *p = a+ (b*c);
         write(a);
+        d = secondfunc(c);
+        write(d);
+        write(a);
+        return 0;
     end
 }

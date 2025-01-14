@@ -200,8 +200,17 @@ ast_node_t* create_func_body_node(char* func_name, type_table_t* return_type, de
         exit(1);
     }
     entry->local_decls = local_decls;
+    entry->binding = get_label();
     ast_node_t* node = create_node(data, entry->type, NODE_TYPE_FUNC_DECL, NULL, NULL, body);
     node->func_details = entry;
+    return node;
+}
+
+
+ast_node_t* create_func_return_node(ast_node_t* expr) {
+    node_value_t data;
+    data.s_val = "return";
+    ast_node_t* node = create_node(data, default_types->unset_type, NODE_TYPE_FUNC_RET, NULL, NULL, expr);
     return node;
 }
 
@@ -230,8 +239,9 @@ void destroy_node(ast_node_t* node) {
 }
 
 void print_prefix(ast_node_t* node) {
-    if (!node)
+    if (node == NULL)
         return;
+
     switch (node->node_type) {
         case NODE_TYPE_WRITE:
             printf("WRITE ");
@@ -295,6 +305,9 @@ void print_prefix(ast_node_t* node) {
             break;
         case NODE_TYPE_PROGRAM:
             printf("PGM CONNECTOR ");
+            break;
+        case NODE_TYPE_FUNC_RET:
+            printf("RET ");
             break;
     }
 

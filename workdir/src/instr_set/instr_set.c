@@ -179,10 +179,30 @@ void post_library_call(reg_index_t ret_val, reg_index_t free_reg, FILE* fp) {
     pop_register(free_reg, fp);
 }
 
+void save_machine_state(int* num_used_regs, FILE* fp) {
+    printf("save machine state\n");
+    for (int i = 1; i < NUM_REGISTERS; i++) {
+        if (num_used_regs[i] == false) {
+            printf("saving: %d\n", i);
+            push_register(i, fp);
+        }
+    }
+}
+
+void restore_machine_state(int* num_used_regs, FILE* fp) {
+    printf("restore machine state\n");
+    for (int i = NUM_REGISTERS-1; i > 0; i--) {
+        if (num_used_regs[i] == false) {
+            printf("restoring: %d\n", i);
+            pop_register(i, fp);
+        }
+    }
+}
+
 
 
 void reset_registers(int* num_used_regs) {
-    for (int i = 0; i < NUM_REGISTERS; i++) {
+    for (int i = 1; i < NUM_REGISTERS; i++) {
         num_used_regs[i] = true;
     }
 }   
@@ -194,6 +214,8 @@ void reset_labels() {
 
 
 void free_used_register(int* num_used_regs, reg_index_t reg) {
+    if (reg <= 0)
+        return;
     num_used_regs[reg] = true;
 }
 
@@ -204,7 +226,7 @@ label_index_t get_label() {
 
 reg_index_t get_free_register(int* num_used_regs) {\
     reg_index_t ret_val = -1;
-    for (reg_index_t i = 0; i < NUM_REGISTERS; i++) {
+    for (reg_index_t i = 1; i < NUM_REGISTERS; i++) {
         if (num_used_regs[i] == true) {
             num_used_regs[i] = false;
             ret_val = i;

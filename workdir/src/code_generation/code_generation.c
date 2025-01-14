@@ -12,23 +12,6 @@ type_table_t* is_type_compatible(type_table_t* type1, type_table_t* type2) {
     return NULL;
 }
 
-// int get_addr(char* name, local_symbol_table_t* l_symbol_table) {
-//     local_symbol_table_t* local_entry = local_symbol_table_lookup(l_symbol_table, name);
-//     if (local_entry == NULL) {
-//         global_symbol_table_t* global_entry = global_symbol_table_lookup(name);
-//         if (global_entry == NULL) {
-//             yyerror("{code_generation:get_addr} Variable not declared");
-//             exit(1);
-//         }
-//         else {
-//             return global_entry->binding;
-//         }
-//     }
-//     else {
-//         return local_entry->binding;
-//     }
-// }
-
 
 reg_index_t load_var_data_to_reg(char* name, reg_index_t offset_reg, FILE* target_file, local_symbol_table_t* l_symbol_table, int* num_used_regs) {
     local_symbol_table_t* local_entry = local_symbol_table_lookup(l_symbol_table, name);
@@ -139,6 +122,9 @@ reg_index_t generate_expression_code(ast_node_t* node, FILE* target_file, int* n
     else if (node->node_type == NODE_TYPE_ARR_INDEX) {
         return generate_arr_index_code(node, target_file, num_used_regs, l_symbol_table);
     }
+    else if (node->node_type == NODE_TYPE_FUNC_CALL) {
+        return generate_func_call_code(node, target_file, num_used_regs, l_symbol_table);
+    }
 
     if (node->value_type == default_types->int_type || node->value_type == default_types->ptr_type) {
         return generate_arithmetic_code(node, target_file, num_used_regs, l_symbol_table);
@@ -189,8 +175,43 @@ reg_index_t generate_boolean_code(ast_node_t* node, FILE* target_file, int* num_
         return free_reg;
     }
 
-    char relop[2];
-    strcpy(relop, node->data.s_val);
+    char* relop = strdup(node->data.s_val);
+
+
+    if (strcmp(relop, "AND") == 0) {
+        reg_index_t free_reg = get_free_register(num_used_regs);
+        label_index_t exit_label = get_label();
+        reg_index_t first_cond_output = generate_expression_code(node->left, target_file, num_used_regs, l_symbol_table);
+        register_addressing(free_reg, first_cond_output, target_file);
+        jump_zero_to_label(free_reg, exit_label, target_file);
+        reg_index_t second_cond_output = generate_expression_code(node->right, target_file, num_used_regs, l_symbol_table);
+        register_addressing(free_reg, second_cond_output, target_file);
+        jump_not_zero_to_label(free_reg, exit_label, target_file);
+
+        immediate_addressing_int(first_cond_output, 0, target_file);
+
+        add_label(exit_label, target_file);
+        free_used_register(num_used_regs, second_cond_output);
+        free_used_register(num_used_regs, free_reg);
+        return first_cond_output;
+    }
+    else if (strcmp(relop, "OR") == 0) {
+        reg_index_t free_reg = get_free_register(num_used_regs);
+        label_index_t exit_label = get_label();
+        reg_index_t first_cond_output = generate_expression_code(node->left, target_file, num_used_regs, l_symbol_table);
+        register_addressing(free_reg, first_cond_output, target_file);
+        jump_not_zero_to_label(free_reg, exit_label, target_file);
+        reg_index_t second_cond_output = generate_expression_code(node->right, target_file, num_used_regs, l_symbol_table);
+        register_addressing(free_reg, second_cond_output, target_file);
+        jump_zero_to_label(free_reg, exit_label, target_file);
+        immediate_addressing_int(first_cond_output, 1, target_file);
+        
+        add_label(exit_label, target_file);
+        free_used_register(num_used_regs, second_cond_output);
+        free_used_register(num_used_regs, free_reg);
+        return first_cond_output;
+    }
+
 
 
     reg_index_t l_val_reg = generate_expression_code(node->left, target_file, num_used_regs, l_symbol_table);
@@ -225,7 +246,7 @@ reg_index_t generate_boolean_code(ast_node_t* node, FILE* target_file, int* num_
         not_equals(l_val_reg, r_val_reg, target_file);
         free_used_register(num_used_regs, r_val_reg);
         return l_val_reg;
-    }  
+    }
 
     return -1;
 }
@@ -311,6 +332,61 @@ reg_index_t generate_arithmetic_code(ast_node_t* node, FILE* target_file, int* n
     return l_val_reg;
 }
 
+reg_index_t generate_func_call_code(ast_node_t* node, FILE* target_file, int* num_used_regs, local_symbol_table_t* l_symbol_table) {
+    if (!node) {
+        yyerror("{code_generation:generate_func_call_code} Something went wrong");
+        exit(1);
+    }
+
+    global_symbol_table_t* func_entry = global_symbol_table_lookup(node->data.s_val);
+    if (func_entry->type != default_types->func_type) {
+        yyerror("{code_generation:generate_func_call_code} Only functions can be called");
+        exit(1);
+    }
+
+    node->value_type = func_entry->inner_type;
+    label_index_t func_label = func_entry->binding;
+    save_machine_state(num_used_regs, target_file);
+    
+    decl_node_t* it1 = func_entry->params;
+    args_node_t* it2 = node->args_list;
+
+    while(it1 != NULL && it2 != NULL) {
+        reg_index_t arg_expr_output = generate_expression_code(it2->expr_node, target_file, num_used_regs, l_symbol_table);
+        if (it1->type != it2->expr_node->value_type) {
+            yyerror("{code_generation:generate_func_call_code} Type mismatch in calling function");
+            exit(1);
+        }
+
+        push_register(arg_expr_output, target_file);
+        free_used_register(num_used_regs, arg_expr_output);
+
+        it1 = it1->next;
+        it2 = it2->next;
+    }
+
+    if (it1 != NULL || it2 != NULL) {
+        yyerror("{code_generation:generate_func_call_code} Parameter count doesn't match");
+        exit(1);
+    }
+
+    push_register(0, target_file);
+    fprintf(target_file, "CALL L%d\n", func_label);
+    pop_register(0, target_file);
+    it1 = func_entry->params;
+    reg_index_t free_reg = get_free_register(num_used_regs);
+    while (it1 != NULL) {
+        pop_register(free_reg, target_file);
+        it1 = it1->next;
+    }
+    free_used_register(num_used_regs, free_reg);
+    restore_machine_state(num_used_regs, target_file);
+
+    reg_index_t ret_val = get_free_register(num_used_regs);
+    register_addressing(ret_val, 0, target_file);
+    return ret_val;
+}
+
 reg_index_t generate_ptr_ref_code(ast_node_t* node, FILE* target_file, int* num_used_regs, local_symbol_table_t* l_symbol_table) {
     if (!node || !(node->left)) {
         yyerror("{code_generation:genreate_ptr_ref_code} Something went wrong");
@@ -343,7 +419,7 @@ reg_index_t generate_ptr_deref_code(ast_node_t* node, FILE* target_file, int* nu
 
     // int address = get_addr(id_node->data.s_val, l_symbol_table);
     // reg_index_t free_reg = get_free_register(num_used_regs);
-    // node->value_type = id_node->value_type;
+    node->value_type = id_node->value_type;
     // immediate_addressing_int(free_reg, address, target_file);
     reg_index_t free_reg = load_var_addr_to_reg(id_node->data.s_val, -1, target_file, l_symbol_table, num_used_regs);
     return free_reg;
@@ -508,7 +584,7 @@ reg_index_t generate_read_code(ast_node_t* node, FILE* target_file, int* num_use
     }
 }
 
-void generate_if_code(ast_node_t* node, FILE* target_file, int* num_used_regs, label_index_t* break_label, label_index_t* continue_label, local_symbol_table_t* l_symbol_table) {
+void generate_if_code(ast_node_t* node, FILE* target_file, int* num_used_regs, label_index_t* break_label, label_index_t* continue_label, local_symbol_table_t* l_symbol_table, global_symbol_table_t* func_entry) {
     if (!node || !(node->left) || !(node->middle)) {
         yyerror("{code_generation:generate_if_code} Something went wrong");
         exit(1);
@@ -525,12 +601,12 @@ void generate_if_code(ast_node_t* node, FILE* target_file, int* num_used_regs, l
 
     reg_index_t condition_output = generate_expression_code(cond_node, target_file, num_used_regs, l_symbol_table);
     jump_zero_to_label(condition_output, exit_if_label, target_file);
-    generate_statement_structure(body_node, target_file, num_used_regs, l_symbol_table, break_label, continue_label);
+    generate_statement_structure(body_node, target_file, num_used_regs, l_symbol_table, break_label, continue_label, func_entry);
     add_label(exit_if_label, target_file);
     free_used_register(num_used_regs, condition_output);
 }
 
-void generate_ifelse_code(ast_node_t* node, FILE* target_file, int* num_used_regs, label_index_t* break_label, label_index_t* continue_label, local_symbol_table_t* l_symbol_table) {
+void generate_ifelse_code(ast_node_t* node, FILE* target_file, int* num_used_regs, label_index_t* break_label, label_index_t* continue_label, local_symbol_table_t* l_symbol_table, global_symbol_table_t* func_entry) {
     if (!node || !(node->left) || !(node->right) || !(node->middle)) {
         yyerror("{code_generation:generate_ifelse_code} Something went wrong");
         exit(1);
@@ -549,15 +625,15 @@ void generate_ifelse_code(ast_node_t* node, FILE* target_file, int* num_used_reg
 
     reg_index_t condition_output = generate_expression_code(cond_node, target_file, num_used_regs, l_symbol_table);
     jump_zero_to_label(condition_output, else_body_label, target_file);
-    generate_statement_structure(if_body_node, target_file, num_used_regs, l_symbol_table, break_label, continue_label);
+    generate_statement_structure(if_body_node, target_file, num_used_regs, l_symbol_table, break_label, continue_label, func_entry);
     jump_to_label(exit_if_label, target_file);
     add_label(else_body_label, target_file);
-    generate_statement_structure(else_body_node, target_file, num_used_regs, l_symbol_table, break_label, continue_label);
+    generate_statement_structure(else_body_node, target_file, num_used_regs, l_symbol_table, break_label, continue_label, func_entry);
     add_label(exit_if_label, target_file);
     free_used_register(num_used_regs, condition_output);
 }
 
-void generate_while_code(ast_node_t* node, FILE* target_file, int* num_used_regs, local_symbol_table_t* l_symbol_table) {
+void generate_while_code(ast_node_t* node, FILE* target_file, int* num_used_regs, local_symbol_table_t* l_symbol_table, global_symbol_table_t* func_entry) {
     if (!node || !(node->left) || !(node->right)) {
         yyerror("{code_generation:generate_while_code} Something went wrong");
         exit(1);
@@ -572,17 +648,16 @@ void generate_while_code(ast_node_t* node, FILE* target_file, int* num_used_regs
 
     label_index_t condn_label = get_label();
     label_index_t exit_while_label = get_label();
-
     add_label(condn_label, target_file);
     reg_index_t condition_output = generate_expression_code(cond_node, target_file, num_used_regs, l_symbol_table);
     jump_zero_to_label(condition_output, exit_while_label, target_file);
-    generate_statement_structure(body_node, target_file, num_used_regs, l_symbol_table, &exit_while_label, &condn_label);
+    generate_statement_structure(body_node, target_file, num_used_regs, l_symbol_table, &exit_while_label, &condn_label, func_entry);
     jump_to_label(condn_label, target_file);
     add_label(exit_while_label, target_file);
     free_used_register(num_used_regs, condition_output);
 } 
 
-void generate_do_while_code(ast_node_t* node, FILE* target_file, int* num_used_regs, local_symbol_table_t* l_symbol_table) {
+void generate_do_while_code(ast_node_t* node, FILE* target_file, int* num_used_regs, local_symbol_table_t* l_symbol_table, global_symbol_table_t* func_entry) {
     if (!node || !(node->left) || !(node->right)) {
         yyerror("{code_generation:generate_do_while_code} Something went wrong");
         exit(1);
@@ -600,7 +675,7 @@ void generate_do_while_code(ast_node_t* node, FILE* target_file, int* num_used_r
     label_index_t condn_label = get_label();
     label_index_t end_do_while_label = get_label();
     add_label(start_label, target_file);
-    generate_statement_structure(node->right, target_file, num_used_regs, l_symbol_table, &end_do_while_label, &condn_label);
+    generate_statement_structure(node->right, target_file, num_used_regs, l_symbol_table, &end_do_while_label, &condn_label, func_entry);
     add_label(condn_label, target_file);
     reg_index_t expr_output = generate_expression_code(node->left, target_file, num_used_regs, l_symbol_table);
     jump_not_zero_to_label(expr_output, start_label, target_file);
@@ -608,7 +683,7 @@ void generate_do_while_code(ast_node_t* node, FILE* target_file, int* num_used_r
     free_used_register(num_used_regs, expr_output);
 }
 
-void generate_repeat_code(ast_node_t* node, FILE* target_file, int* num_used_regs, local_symbol_table_t* l_symbol_table) {
+void generate_repeat_code(ast_node_t* node, FILE* target_file, int* num_used_regs, local_symbol_table_t* l_symbol_table, global_symbol_table_t* func_entry) {
     if (!node || !(node->left) || !(node->right)) {
         yyerror("{code_generation:generate_do_while_code} Something went wrong");
         exit(1);
@@ -627,7 +702,7 @@ void generate_repeat_code(ast_node_t* node, FILE* target_file, int* num_used_reg
     label_index_t end_repeat_label = get_label();
     
     add_label(start_label, target_file);
-    generate_statement_structure(node->right, target_file, num_used_regs, l_symbol_table, &end_repeat_label, &condn_label);
+    generate_statement_structure(node->right, target_file, num_used_regs, l_symbol_table, &end_repeat_label, &condn_label, func_entry);
     add_label(condn_label, target_file);
     reg_index_t expr_output = generate_expression_code(node->left, target_file, num_used_regs, l_symbol_table);
     jump_zero_to_label(expr_output, start_label, target_file);
@@ -655,8 +730,8 @@ void generate_function_code(ast_node_t* node, FILE* target_file) {
     }
 
 
-    label_index_t func_label = get_label();
     global_symbol_table_t* func_entry = node->func_details;
+    label_index_t func_label = func_entry->binding;
     if (!func_entry) {
         yyerror("{code_generation:generate_function_code} Function decl not found");
         exit(1);
@@ -676,10 +751,11 @@ void generate_function_code(ast_node_t* node, FILE* target_file) {
             i,
             NULL
         );
-
         local_symbol_table = append_to_local_table(local_symbol_table, new_entry);
         i++;
     }
+
+    int num_params = i-1;
 
     for (decl_node_t* entry = func_local_decls; entry != NULL; entry = entry->next) {
         local_symbol_table_t* new_entry = create_local_symbol_table_entry(
@@ -695,17 +771,87 @@ void generate_function_code(ast_node_t* node, FILE* target_file) {
 
 
     }
-    fprintf(target_file, "MOV BP, SP\n");
-    fprintf(target_file, "ADD SP, %d\n", i);
-
     add_label(func_label, target_file);
+    fprintf(target_file, "PUSH BP\n");
+    fprintf(target_file, "MOV BP, SP\n");
+    fprintf(target_file, "ADD SP, %d\n", i-1);
+
+
     int* num_used_registers = (int*) calloc(NUM_REGISTERS, sizeof(int));
     reset_registers(num_used_registers);
-    generate_statement_structure(node->middle, target_file, num_used_registers, local_symbol_table, NULL, NULL);
+    
+
+    //copy args to local table
+    for (int i = 0; i < num_params; i++) {
+        reg_index_t dest_reg = get_free_register(num_used_registers);
+        reg_index_t src_reg = get_free_register(num_used_registers);
+
+        add_breakpoint(target_file);
+        fprintf(target_file, "MOV R%d, BP\n", src_reg);
+        fprintf(target_file, "SUB R%d, %d\n", src_reg, (num_params + 2 - i));
+        fprintf(target_file, "MOV R%d, [R%d]\n", src_reg, src_reg);
+
+        fprintf(target_file, "MOV R%d, BP\n", dest_reg);
+        fprintf(target_file, "ADD R%d, %d\n", dest_reg, i+1);
+
+        fprintf(target_file, "MOV [R%d], R%d\n", dest_reg, src_reg);
+
+        // [bp] = bp
+        // [bp-1] = addr to return to
+        // [bp-2] = ret_val
+        // [bp-3] = nth arg
+        // [bp-4] = n-1th arg
+        // [bp-3-(n-1)] = 1st arg bp - 2 - n+0 
+    }
+
+
+
+
+
+    generate_statement_structure(node->middle, target_file, num_used_registers, local_symbol_table, NULL, NULL, func_entry);
+    
+    destroy_local_symbol_table(local_symbol_table);
+    free(num_used_registers);
+}
+
+void generate_func_return_code(ast_node_t* node, FILE* target_file, int* num_used_regs, local_symbol_table_t* l_symbol_table, global_symbol_table_t* func_entry) {
+    if (!node) {
+        yyerror("{code_generation:generate_func_return_code} Something went wrong");
+        exit(1);
+    }
+
+    if (node->middle == NULL) {
+        if (func_entry->inner_type != default_types->void_type) {
+            yyerror("{code_generation:generate_func_return_code} Mismatched return types");
+            exit(1);
+        }
+
+        fprintf(target_file, "MOV SP, BP\n");
+        fprintf(target_file, "POP BP\n");
+        fprintf(target_file, "RET\n");
+        return;
+    }
+    ast_node_t* expr_node = node->middle;
+    reg_index_t expr_output_reg = generate_expression_code(expr_node, target_file, num_used_regs, l_symbol_table);
+    if (func_entry->inner_type != expr_node->value_type) {
+        yyerror("{code_generation:generate_func_return_code} Mismatched return types");
+        exit(1);
+    }
+
+    reg_index_t ret_val_reg = get_free_register(num_used_regs);
+    fprintf(target_file, "MOV R%d, BP\n", ret_val_reg);
+    sub_immediate(ret_val_reg, 2, target_file);
+    register_indirect_addressing_store(ret_val_reg, expr_output_reg, target_file);
+    free_used_register(num_used_regs, expr_output_reg);
+    free_used_register(num_used_regs, ret_val_reg);
+
+    fprintf(target_file, "MOV SP, BP\n");
+    fprintf(target_file, "POP BP\n");
+    fprintf(target_file, "RET\n");
 }
 
 
-void generate_statement_structure(ast_node_t* node, FILE* target_file, int* num_used_regs, local_symbol_table_t* l_symbol_table, label_index_t* break_label, label_index_t* continue_label) {
+void generate_statement_structure(ast_node_t* node, FILE* target_file, int* num_used_regs, local_symbol_table_t* l_symbol_table, label_index_t* break_label, label_index_t* continue_label, global_symbol_table_t* func_entry) {
     if (!node)
         return;
     if (break_label && node->node_type == NODE_TYPE_BREAK) {
@@ -715,8 +861,8 @@ void generate_statement_structure(ast_node_t* node, FILE* target_file, int* num_
         jump_to_label(*continue_label, target_file);
     }
     if (node->node_type == NODE_TYPE_CONNECTOR) {
-        generate_statement_structure(node->left, target_file, num_used_regs, l_symbol_table, break_label, continue_label);
-        generate_statement_structure(node->right, target_file, num_used_regs, l_symbol_table, break_label, continue_label);
+        generate_statement_structure(node->left, target_file, num_used_regs, l_symbol_table, break_label, continue_label, func_entry);
+        generate_statement_structure(node->right, target_file, num_used_regs, l_symbol_table, break_label, continue_label, func_entry);
     }
     else if (node->node_type == NODE_TYPE_WRITE) {
         reg_index_t ret_val = generate_print_code(node, target_file, num_used_regs, l_symbol_table);
@@ -733,19 +879,26 @@ void generate_statement_structure(ast_node_t* node, FILE* target_file, int* num_
         generate_ptr_assignment_code(node, target_file, num_used_regs, l_symbol_table);
     }
     else if (node->node_type == NODE_TYPE_IF) {
-        generate_if_code(node, target_file, num_used_regs, break_label, continue_label, l_symbol_table);
+        generate_if_code(node, target_file, num_used_regs, break_label, continue_label, l_symbol_table, func_entry);
     }
     else if (node->node_type == NODE_TYPE_IFELSE) {
-        generate_ifelse_code(node, target_file, num_used_regs, break_label, continue_label, l_symbol_table);
+        generate_ifelse_code(node, target_file, num_used_regs, break_label, continue_label, l_symbol_table, func_entry);
     }
     else if (node->node_type == NODE_TYPE_WHILE) {
-        generate_while_code(node, target_file, num_used_regs, l_symbol_table);
+        generate_while_code(node, target_file, num_used_regs, l_symbol_table, func_entry);
     }
     else if (node->node_type == NODE_TYPE_DO_WHILE) {
-        generate_do_while_code(node, target_file, num_used_regs, l_symbol_table);
+        generate_do_while_code(node, target_file, num_used_regs, l_symbol_table, func_entry);
     }
     else if (node->node_type == NODE_TYPE_REPEAT) {
-        generate_repeat_code(node, target_file, num_used_regs, l_symbol_table);
+        generate_repeat_code(node, target_file, num_used_regs, l_symbol_table, func_entry);
+    }
+    else if (node->node_type == NODE_TYPE_FUNC_RET) {
+        generate_func_return_code(node, target_file, num_used_regs, l_symbol_table, func_entry);
+    }
+    else if (node->node_type == NODE_TYPE_FUNC_CALL) {
+        reg_index_t ret_val_reg = generate_func_call_code(node, target_file, num_used_regs, l_symbol_table);
+        free_used_register(num_used_regs, ret_val_reg);
     }
 }
 
@@ -835,14 +988,26 @@ void generate_headers(FILE* target_file) {
 
 
 void generate_program(ast_node_t* body, FILE* target_file) {
-    reset_labels();
-
     generate_headers(target_file);
     add_breakpoint(target_file);
     int free_address = get_binding(0);
     fprintf(target_file, "MOV SP, %d\n", free_address);
-    generate_program_structure(body, target_file);
+    fprintf(target_file, "MOV BP, SP\n");
+
     int* free_registers = (int*) calloc(NUM_REGISTERS, sizeof(int));
     reset_registers(free_registers);
+    
+    
+    
+    global_symbol_table_t* main_entry = global_symbol_table_lookup("main");
+    label_index_t main_label = main_entry->binding;
+    // PUSH MACHINE STATE
+    save_machine_state(free_registers, target_file);
+    fprintf(target_file, "PUSH R0\n"); // space for ret_val
+    fprintf(target_file, "CALL L%d\n", main_label);
+    fprintf(target_file, "POP R0\n");
+    restore_machine_state(free_registers, target_file);
     exit_program(target_file, free_registers);
+
+    generate_program_structure(body, target_file);
 }

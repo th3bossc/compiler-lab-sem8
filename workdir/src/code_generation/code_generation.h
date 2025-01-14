@@ -12,7 +12,7 @@
 
 void generate_function_code(ast_node_t* node, FILE* target_file);
 void generate_program_structure(ast_node_t* node, FILE* target_file);
-void generate_statement_structure(ast_node_t* node, FILE* target_file, int* num_used_regs, local_symbol_table_t* l_symbol_table, label_index_t* break_label, label_index_t* continue_label);
+void generate_statement_structure(ast_node_t* node, FILE* target_file, int* num_used_regs, local_symbol_table_t* l_symbol_table, label_index_t* break_label, label_index_t* continue_label, global_symbol_table_t* func_entry);
 
 reg_index_t generate_arithmetic_code(ast_node_t* node, FILE* target_file, int* num_used_regs, local_symbol_table_t* l_symbol_table);
 reg_index_t generate_boolean_code(ast_node_t* node, FILE* target_file, int* num_used_regs, local_symbol_table_t* l_symbol_table);
@@ -22,6 +22,7 @@ reg_index_t generate_expression_code(ast_node_t* node, FILE* target_file, int* n
 reg_index_t generate_ptr_deref_code(ast_node_t* node, FILE* target_file, int* num_used_regs, local_symbol_table_t* l_symbol_table);
 reg_index_t generate_ptr_ref_code(ast_node_t* node, FILE* target_file, int* num_used_regs, local_symbol_table_t* l_symbol_table);
 reg_index_t generate_id_expr_code(ast_node_t* node, FILE* target_file, int* num_used_regs, local_symbol_table_t* l_symbol_table);
+reg_index_t generate_func_call_code(ast_node_t* node, FILE* target_file, int* num_used_regs, local_symbol_table_t* l_symbol_table);
 
 void generate_assignment_code(ast_node_t* node, FILE* target_file, int* num_used_regs, local_symbol_table_t* l_symbol_table);
 void generate_arr_assignment_code(ast_node_t* node, FILE* target_file, int* num_used_regs, local_symbol_table_t* l_symbol_table);
@@ -30,11 +31,12 @@ void generate_ptr_assignment_code(ast_node_t* node, FILE* target_file, int* num_
 reg_index_t generate_print_code(ast_node_t* node, FILE* target_file, int* num_used_regs, local_symbol_table_t* l_symbol_table);
 reg_index_t generate_read_code(ast_node_t* node, FILE* target_file, int* num_used_regs, local_symbol_table_t* l_symbol_table);
 
-void generate_if_code(ast_node_t* node, FILE* target_file, int* num_used_regs, label_index_t* break_label, label_index_t* continue_label, local_symbol_table_t* l_symbol_table);
-void generate_ifelse_code(ast_node_t* node, FILE* target_file, int* num_used_regs, label_index_t* break_label, label_index_t* continue_label, local_symbol_table_t* l_symbol_table);
-void generate_while_code(ast_node_t* node, FILE* target_file, int* num_used_regs, local_symbol_table_t* l_symbol_table);
-void generate_do_while_code(ast_node_t* node, FILE* target_file, int* num_used_regs, local_symbol_table_t* l_symbol_table);
-void generate_repeat_code(ast_node_t* node, FILE* target_file, int* num_used_regs, local_symbol_table_t* l_symbol_table);
+void generate_if_code(ast_node_t* node, FILE* target_file, int* num_used_regs, label_index_t* break_label, label_index_t* continue_label, local_symbol_table_t* l_symbol_table, global_symbol_table_t* func_entry);
+void generate_ifelse_code(ast_node_t* node, FILE* target_file, int* num_used_regs, label_index_t* break_label, label_index_t* continue_label, local_symbol_table_t* l_symbol_table, global_symbol_table_t* func_entry);
+void generate_while_code(ast_node_t* node, FILE* target_file, int* num_used_regs, local_symbol_table_t* l_symbol_table, global_symbol_table_t* func_entry);
+void generate_do_while_code(ast_node_t* node, FILE* target_file, int* num_used_regs, local_symbol_table_t* l_symbol_table, global_symbol_table_t* func_entry);
+void generate_repeat_code(ast_node_t* node, FILE* target_file, int* num_used_regs, local_symbol_table_t* l_symbol_table, global_symbol_table_t* func_entry);
+void generate_func_return_code(ast_node_t* node, FILE* target_file, int* num_used_regs, local_symbol_table_t* l_symbol_table, global_symbol_table_t* func_entry);
 
 reg_index_t print_register(reg_index_t data, FILE* target_file, int* num_used_regs);
 reg_index_t print_addr(int addr, FILE* target_file, int* num_used_regs);

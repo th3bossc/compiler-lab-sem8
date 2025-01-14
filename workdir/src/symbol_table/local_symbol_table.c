@@ -14,6 +14,8 @@ local_symbol_table_t* create_local_symbol_table_entry(char* name, type_table_t* 
 
 
 void destroy_local_symbol_table(local_symbol_table_t* table) {
+    if (!table)
+        return;
     if (table->next) {
         destroy_local_symbol_table(table->next);
     } 
