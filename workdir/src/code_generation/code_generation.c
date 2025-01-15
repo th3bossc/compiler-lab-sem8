@@ -84,12 +84,18 @@ reg_index_t generate_id_expr_code(ast_node_t* node, FILE* target_file, int* num_
         exit(1);
     }
 
-
     type_table_t* id_type = get_var_type(node->data.s_val, l_symbol_table);
-    node->value_type = id_type;
+    if (is_user_defined_type(id_type)) {
+        node->value_type = id_type;
+        reg_index_t id_val = load_var_addr_to_reg(node->data.s_val, -1, target_file, l_symbol_table, num_used_regs);
+        return id_val;
+    }
+    else {
+        node->value_type = id_type;
 
-    reg_index_t id_val = load_var_data_to_reg(node->data.s_val, -1, target_file, l_symbol_table, num_used_regs);
-    return id_val;
+        reg_index_t id_val = load_var_data_to_reg(node->data.s_val, -1, target_file, l_symbol_table, num_used_regs);
+        return id_val;
+    }
 }
 
 reg_index_t generate_expression_code(ast_node_t* node, FILE* target_file, int* num_used_regs, local_symbol_table_t* l_symbol_table) {
@@ -114,7 +120,7 @@ reg_index_t generate_expression_code(ast_node_t* node, FILE* target_file, int* n
     else if (node->node_type == NODE_TYPE_FUNC_CALL) {
         return generate_func_call_code(node, target_file, num_used_regs, l_symbol_table);
     }
-    else if (node->node_type == NODE_TYPE_TUPLE) {
+    else if (node->node_type == NODE_TYPE_TUPLE_FIELD) {
         return generate_tuple_index_code(node, target_file, num_used_regs, l_symbol_table);
     }
 
@@ -468,7 +474,7 @@ void generate_assignment_code(ast_node_t* node, FILE* target_file, int* num_used
     if (node->left->node_type == NODE_TYPE_ARR_INDEX) {
         return generate_arr_assignment_code(node, target_file, num_used_regs, l_symbol_table);
     }
-    else if(node->left->node_type == NODE_TYPE_TUPLE) {
+    else if(node->left->node_type == NODE_TYPE_TUPLE_FIELD) {
         return generate_tuple_field_assignment_code(node, target_file, num_used_regs, l_symbol_table);
     }
 
@@ -629,8 +635,6 @@ reg_index_t generate_read_code(ast_node_t* node, FILE* target_file, int* num_use
     reg_index_t ret_val;
     if (node->left->node_type == NODE_TYPE_ID) {
         ast_node_t* id_node = node->left;
-        // int addr = get_addr(id_node->data.s_val, l_symbol_table);
-        // ret_val = read_into_addr(addr, target_file, num_used_regs);
         reg_index_t addr_reg = load_var_addr_to_reg(id_node->data.s_val, -1, target_file, l_symbol_table, num_used_regs);
         ret_val = read_into_reg_addr(addr_reg, target_file, num_used_regs);
         free_used_register(num_used_regs, addr_reg);
@@ -654,7 +658,7 @@ reg_index_t generate_read_code(ast_node_t* node, FILE* target_file, int* num_use
 
         return ret_val;
     }
-    else if (node->left->node_type == NODE_TYPE_TUPLE) {
+    else if (node->left->node_type == NODE_TYPE_TUPLE_FIELD) {
         ast_node_t* id_node = node->left;
         symbol_table_entry_t var_info = get_var_details(id_node->data.s_val, l_symbol_table);
 

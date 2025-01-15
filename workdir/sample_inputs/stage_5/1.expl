@@ -13,5 +13,6 @@ int main() {
         write(j);
         write(a[i][j]);
         write(a[j][i]);
+        return 0; 
     end
 }

@@ -180,20 +180,16 @@ void post_library_call(reg_index_t ret_val, reg_index_t free_reg, FILE* fp) {
 }
 
 void save_machine_state(int* num_used_regs, FILE* fp) {
-    printf("save machine state\n");
     for (int i = 1; i < NUM_REGISTERS; i++) {
         if (num_used_regs[i] == false) {
-            printf("saving: %d\n", i);
             push_register(i, fp);
         }
     }
 }
 
 void restore_machine_state(int* num_used_regs, FILE* fp) {
-    printf("restore machine state\n");
     for (int i = NUM_REGISTERS-1; i > 0; i--) {
         if (num_used_regs[i] == false) {
-            printf("restoring: %d\n", i);
             pop_register(i, fp);
         }
     }

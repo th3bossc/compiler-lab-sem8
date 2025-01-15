@@ -53,3 +53,14 @@ type_table_t* get_var_inner_type(char* name, local_symbol_table_t* local_table) 
     if (entry.entry_type == ENTRY_TYPE_LOCAL)
         return entry.entry.local_entry->inner_type;
 }
+
+global_symbol_table_t* get_var_at_address(int address) {
+    global_symbol_table_t* it = global_symbol_table;
+    while(it != NULL) {
+        if (it->binding == address) 
+            return it;
+        it = it->next;
+    }
+
+    return NULL;
+}

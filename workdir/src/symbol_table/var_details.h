@@ -34,4 +34,5 @@ struct symbol_table_entry_s {
 symbol_table_entry_t get_var_details(char* name, local_symbol_table_t* local_table);
 type_table_t* get_var_type(char* name, local_symbol_table_t* local_table);
 type_table_t* get_var_inner_type(char* name, local_symbol_table_t* local_table);
+global_symbol_table_t* get_var_at_address(int address);
 #endif

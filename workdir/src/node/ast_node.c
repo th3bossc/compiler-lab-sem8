@@ -44,7 +44,7 @@ ast_node_t* create_tuple_field_node(char* var_name, char* field_name) {
     node_value_t field_data;
     field_data.s_val = strdup(field_name);
     ast_node_t* field_node = create_id_node(field_name);
-    ast_node_t* node = create_node(data, default_types->unset_type, NODE_TYPE_TUPLE, NULL, NULL, field_node);
+    ast_node_t* node = create_node(data, default_types->unset_type, NODE_TYPE_TUPLE_FIELD, NULL, NULL, field_node);
     return node;
 }
 

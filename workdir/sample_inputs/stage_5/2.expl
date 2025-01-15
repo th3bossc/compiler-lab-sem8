@@ -65,5 +65,7 @@ int main() {
             endwhile;
             i = i+1;
         endwhile;
+
+        return 0;
     end
 }
