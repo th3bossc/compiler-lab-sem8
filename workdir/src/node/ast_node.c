@@ -38,13 +38,12 @@ ast_node_t* create_id_node(char* var_name) {
     return node;
 }
 
-ast_node_t* create_tuple_field_node(char* var_name, char* field_name) {
+ast_node_t* create_tuple_field_node(ast_node_t* addr_node, char* field_name) {
     node_value_t data;
-    data.s_val = strdup(var_name);
     node_value_t field_data;
     field_data.s_val = strdup(field_name);
     ast_node_t* field_node = create_id_node(field_name);
-    ast_node_t* node = create_node(data, default_types->unset_type, NODE_TYPE_TUPLE_FIELD, NULL, NULL, field_node);
+    ast_node_t* node = create_node(data, default_types->unset_type, NODE_TYPE_TUPLE_FIELD, addr_node, field_node, NULL);
     return node;
 }
 
@@ -150,10 +149,10 @@ ast_node_t* create_ptr_assignment_node(char* var_name, ast_node_t* expr) {
     return node;
 }
 
-ast_node_t* create_tuple_field_assignment_node(char* var_name, char* field_name, ast_node_t* expr) {
+ast_node_t* create_tuple_field_assignment_node(ast_node_t* addr_node, char* field_name, ast_node_t* expr) {
     node_value_t data;
     data.c_val = '=';
-    ast_node_t* id_node = create_tuple_field_node(var_name, field_name);
+    ast_node_t* id_node = create_tuple_field_node(addr_node, field_name);
     ast_node_t* node = create_node(data, default_types->void_type, NODE_TYPE_ASSIGN, id_node, expr, NULL);
     return node;
 }

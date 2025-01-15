@@ -1,0 +1,25 @@
+decl
+    tuple Sample(int first, str second) a, *b, c;
+enddecl
+
+
+int main() {
+    begin
+        a.first = 5;
+        b = &a;
+        write((*b).first);
+        (*b).first = 9;
+        write(a.first);
+
+        c = a;
+        write(c.first);
+        c.first = 10;
+
+        write("--");
+        write(a.first);
+        write(a.second);
+        write(c.first);
+        write(c.second);
+        return 0;
+    end
+}

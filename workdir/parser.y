@@ -50,6 +50,7 @@ int num_fields;
 %left EQUALS NOT_EQUALS
 
 %left '+' '-'
+%nonassoc PERIOD
 %left '*' '/'
 %left '&'
 %nonassoc '[' ']' '%'
@@ -220,7 +221,7 @@ stmt_assign : ID '=' expr                               { $<node>$ = create_assi
             | ID '[' expr ']' '=' expr                  { $<node>$ = create_arr_assignment_node($<s_val>1, $<node>3, $<node>6); }
             | ID '[' expr ']' '[' expr ']' '=' expr     { $<node>$ = create_2d_arr_assignment_node($<s_val>1, $<node>3, $<node>6, $<node>9); }
             | '*' ID '=' expr                           { $<node>$ = create_ptr_assignment_node($<s_val>2, $<node>4); }
-            | ID PERIOD ID '=' expr                        { $<node>$ = create_tuple_field_assignment_node($<s_val>1, $<s_val>3, $<node>5); }
+            | expr PERIOD ID '=' expr                        { $<node>$ = create_tuple_field_assignment_node($<node>1, $<s_val>3, $<node>5); }
             ;
 
 stmt_write  : WRITE '(' expr ')'                { $<node>$ = create_write_node($<node>3); }
@@ -266,7 +267,7 @@ expr        : expr '+' expr                     { $<node>$ = create_operator_nod
             | ID '[' expr ']' '[' expr ']'      { $<node>$ = create_2d_arr_index_node($<s_val>1, $<node>3, $<node>6); }
             | ID '(' args_list ')'              { $<node>$ = create_func_call_node($<s_val>1, $<args_node>3); }
             | ID '(' ')'                        { $<node>$ = create_func_call_node($<s_val>1, NULL); }
-            | ID PERIOD ID                         { $<node>$ = create_tuple_field_node($<s_val>1, $<s_val>3); }
+            | expr PERIOD ID                         { $<node>$ = create_tuple_field_node($<node>1, $<s_val>3); }
             ;
 
 args_list   : args_list COMMA expr              { $<args_node>$ = join_args_nodes($<args_node>1, create_args_node($<node>3)); }
