@@ -1,0 +1,20 @@
+decl
+    tuple student(str name, int roll_no, str branch_name, int year_of_admission) a, b;
+enddecl 
+
+
+int main() {
+    begin
+        read(a.name);
+        read(b.name);
+
+        if (a.name == b.name) then 
+            write("same");
+        else 
+            write(a.name);
+            write(b.name);
+            write("not same");
+        endif;
+        return 0;
+    end
+}

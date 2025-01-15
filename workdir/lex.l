@@ -33,6 +33,9 @@
     return COMMA;
 }
 
+\. {
+    return PERIOD;
+}
 
 decl { return BEGIN_DECL; }
 enddecl { return END_DECL; }
@@ -68,6 +71,7 @@ endrepeat { return ENDREPEAT; }
 break { return BREAK; }
 continue { return CONTINUE; }
 return { return RETURN; }
+tuple { return TUPLE; }
 
 AND { return AND; }
 OR { return OR; }

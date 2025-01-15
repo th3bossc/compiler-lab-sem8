@@ -1,0 +1,40 @@
+decl
+    int swap(int* a, int* b);
+enddecl
+
+int swap(int* a, int* b) {
+    decl
+        int temp;
+    enddecl
+
+    begin 
+        temp = *a;
+        *a = *b;
+        *b = temp;
+
+        return 0;
+    end
+}
+
+int main() {
+    decl 
+        int a, b;
+    enddecl 
+
+    begin 
+        read(a);
+        read(b);
+
+        write("before:");
+        write(a);
+        write(b);
+
+        swap(&a, &b);
+
+        write("after:");
+        write(a);
+        write(b);
+
+        return 0;
+    end
+}

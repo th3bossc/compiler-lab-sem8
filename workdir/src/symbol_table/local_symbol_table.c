@@ -1,11 +1,12 @@
 #include "local_symbol_table.h"
 
 
-local_symbol_table_t* create_local_symbol_table_entry(char* name, type_table_t* type, int binding, local_symbol_table_t* next) {
+local_symbol_table_t* create_local_symbol_table_entry(char* name, type_table_t* type, type_table_t* inner_type, int binding, local_symbol_table_t* next) {
     local_symbol_table_t* entry = (local_symbol_table_t*) malloc(sizeof(local_symbol_table_t));
 
     entry->name = strdup(name);
     entry->type = type;
+    entry->inner_type = inner_type;
     entry->binding = binding;
     entry->next = next;
 

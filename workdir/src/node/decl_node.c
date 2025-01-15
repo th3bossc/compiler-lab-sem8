@@ -1,9 +1,10 @@
 #include "decl_node.h"
-decl_node_t* create_decl_node(char* name, type_table_t* type) {
+decl_node_t* create_decl_node(char* name, type_table_t* type, type_table_t* inner_type) {
     decl_node_t* node = (decl_node_t*) malloc(sizeof(decl_node_t));
 
     node->name = strdup(name);
     node->type = type;
+    node->inner_type = inner_type;
     node->next = NULL;
 
     return node;
@@ -31,6 +32,8 @@ bool verify_params_list(decl_node_t* params_list1, decl_node_t* params_list2) {
             return false;
         if (it1->type != it2->type)
             return false; 
+        if (it1->inner_type != it2->inner_type)
+            return false;
 
         it1 = it1->next;
         it2 = it2->next;

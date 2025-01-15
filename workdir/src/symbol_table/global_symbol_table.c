@@ -31,11 +31,14 @@ global_symbol_table_t* create_entry(char* name, type_table_t* type, int size, in
 }
 
 
-global_symbol_table_t* create_global_symbol_table_entry(char* name, type_table_t* type, int size) {
+global_symbol_table_t* create_global_symbol_table_entry(char* name, type_table_t* type) {
     if (!type) {
         perror("{global_symbol_table:create_global_symbol_table_entry} type not found");
         exit(1);
     }
+
+    int size = type->size;
+
     global_symbol_table_t* entry = create_entry(
         name,
         type,

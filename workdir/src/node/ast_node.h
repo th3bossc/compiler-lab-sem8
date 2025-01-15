@@ -21,6 +21,7 @@ enum node_type_s {
     NODE_TYPE_READ,
     NODE_TYPE_CONNECTOR,
     NODE_TYPE_ID,
+    NODE_TYPE_TUPLE,
     NODE_TYPE_INT,
     NODE_TYPE_STRING,
     NODE_TYPE_ASSIGN,
@@ -66,6 +67,7 @@ struct ast_node_s {
 ast_node_t* create_num_node(int val);
 ast_node_t* create_string_node(char* data);
 ast_node_t* create_id_node(char* var_name);
+ast_node_t* create_tuple_field_node(char* var_name, char* field_name);
 ast_node_t* create_operator_node(char op, ast_node_t* left, ast_node_t* right);
 ast_node_t* create_write_node(ast_node_t* expr);
 ast_node_t* create_read_node(ast_node_t* expr);
@@ -79,6 +81,7 @@ ast_node_t* create_assignment_node(char* var_name, ast_node_t* expr);
 ast_node_t* create_arr_assignment_node(char* var_name, ast_node_t* index_node, ast_node_t* expr);
 ast_node_t* create_2d_arr_assignment_node(char* var_name, ast_node_t* outer_index_node, ast_node_t* inner_index_node, ast_node_t* expr);
 ast_node_t* create_ptr_assignment_node(char* var_name, ast_node_t* expr);
+ast_node_t* create_tuple_field_assignment_node(char* var_name, char* field_name, ast_node_t* expr);
 ast_node_t* create_ifelse_node(ast_node_t* condn, ast_node_t* if_subtree, ast_node_t* else_subtree);
 ast_node_t* create_while_node(ast_node_t* condn, ast_node_t* body);
 ast_node_t* create_do_while_node(ast_node_t* condn, ast_node_t* body);

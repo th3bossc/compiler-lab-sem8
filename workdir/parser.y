@@ -21,12 +21,14 @@ void parser_complete_handler(ast_node_t*, FILE*);
 type_table_t* var_type;
 type_table_t* arg_type;
 type_table_t* return_type;
+type_table_t* tuple_field_type;
+int num_fields;
 
 // #define YYDEBUG 1
 // int yydebug = 1;
 %}
 
-%token SEMICOLON COMMA
+%token SEMICOLON COMMA PERIOD
 %token END_BLOCK BEGIN_BLOCK
 %token BEGIN_DECL END_DECL
 %token NUM ID 
@@ -39,6 +41,8 @@ type_table_t* return_type;
 %token GT LT GTE LTE EQUALS NOT_EQUALS AND OR
 %token STRING_LITERAL
 %token RETURN
+
+%token TUPLE
 
 %left OR
 %left AND
@@ -56,6 +60,7 @@ type_table_t* return_type;
     ast_node_t* node;
     decl_node_t* decl_node;
     args_node_t* args_node;
+    type_table_t* type_table;
     char c_val;
     char* s_val;
     int n_val;
@@ -90,7 +95,7 @@ gloabl_id_list  : gloabl_id_list COMMA global_id
                 | global_id 
                 ;
 
-global_id   : ID                                        { create_global_symbol_table_entry($<s_val>1, var_type, 1); }
+global_id   : ID                                        { create_global_symbol_table_entry($<s_val>1, var_type); }
             | ID '[' NUM ']'                            { create_global_symbol_table_array_entry($<s_val>1, var_type, $<n_val>3, 1); }
             | ID '[' NUM ']' '[' NUM ']'                { create_global_symbol_table_array_entry($<s_val>1, var_type, $<n_val>3, $<n_val>6); }
             | '*' ID                                    { create_global_symbol_table_pointer_entry($<s_val>2, var_type, 1); }
@@ -111,14 +116,31 @@ local_decls     : type local_id_list SEMICOLON          { $<decl_node>$ = $<decl
                 ;
 
 
-local_id_list   : local_id_list COMMA ID    { $<decl_node>$ = join_decl_nodes($<decl_node>1, create_decl_node($<s_val>3, var_type)); }
-                | ID                        { $<decl_node>$ = create_decl_node($<s_val>1, var_type); }
+local_id_list   : local_id_list COMMA ID    { $<decl_node>$ = join_decl_nodes($<decl_node>1, create_decl_node($<s_val>3, var_type, NULL)); }
+                | ID                        { $<decl_node>$ = create_decl_node($<s_val>1, var_type, NULL); }
 
   
-type        : INT       { var_type = default_types->int_type; }
-            | STR       { var_type = default_types->str_type; }
+type        : INT           { var_type = default_types->int_type; }
+            | STR           { var_type = default_types->str_type; }
+            | custom_type   { var_type = $<type_table>1; }
             ;
 
+
+// custom syntax for tuples
+custom_type : TUPLE ID '(' tuple_fields_list ')'                    { $<type_table>$ = create_type_table_entry($<s_val>2, 0, $<decl_node>4); }
+            ;
+
+
+tuple_fields_list   : tuple_fields_list COMMA tuple_field_element   { $<decl_node>$ = join_decl_nodes($<decl_node>1, $<decl_node>3); }
+                    | tuple_field_element                           { $<decl_node>$ = $<decl_node>1; }
+                    ;
+
+tuple_field_element : tuple_field_type  ID  { $<decl_node>$ = create_decl_node($<s_val>2, tuple_field_type, NULL); num_fields++; }
+                    ;
+
+tuple_field_type    : INT   { tuple_field_type = default_types->int_type; }
+                    | STR   { tuple_field_type = default_types->str_type; }
+                    ;
 
 ret_type    : INT       { return_type = default_types->int_type; }
             | STR       { return_type = default_types->str_type; }
@@ -144,8 +166,8 @@ ret_type    : INT       { return_type = default_types->int_type; }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
-func_def_block  : func_def_block func_def       { printf("func yay"); $<node>$ = create_program_node($<node>1, $<node>2); }
-                | func_def                      { printf("func yay"); $<node>$ = $<node>1; }
+func_def_block  : func_def_block func_def       { $<node>$ = create_program_node($<node>1, $<node>2); }
+                | func_def                      { $<node>$ = $<node>1; }
                 ;
 
 
@@ -159,7 +181,8 @@ func_params_list    : func_params_list COMMA func_param     { $<decl_node>$ = jo
                     | func_param                            { $<decl_node>$ = $<decl_node>1; }
                     ;
 
-func_param      : arg_type ID   { $<decl_node>$ = create_decl_node($<s_val>2, arg_type); }
+func_param      : arg_type ID       { $<decl_node>$ = create_decl_node($<s_val>2, arg_type, NULL); }
+                | arg_type '*' ID   { $<decl_node>$ = create_decl_node($<s_val>3, default_types->ptr_type, arg_type); }
                 ;
 
 arg_type    : INT       { arg_type = default_types->int_type; }
@@ -197,6 +220,7 @@ stmt_assign : ID '=' expr                               { $<node>$ = create_assi
             | ID '[' expr ']' '=' expr                  { $<node>$ = create_arr_assignment_node($<s_val>1, $<node>3, $<node>6); }
             | ID '[' expr ']' '[' expr ']' '=' expr     { $<node>$ = create_2d_arr_assignment_node($<s_val>1, $<node>3, $<node>6, $<node>9); }
             | '*' ID '=' expr                           { $<node>$ = create_ptr_assignment_node($<s_val>2, $<node>4); }
+            | ID PERIOD ID '=' expr                        { $<node>$ = create_tuple_field_assignment_node($<s_val>1, $<s_val>3, $<node>5); }
             ;
 
 stmt_write  : WRITE '(' expr ')'                { $<node>$ = create_write_node($<node>3); }
@@ -242,6 +266,7 @@ expr        : expr '+' expr                     { $<node>$ = create_operator_nod
             | ID '[' expr ']' '[' expr ']'      { $<node>$ = create_2d_arr_index_node($<s_val>1, $<node>3, $<node>6); }
             | ID '(' args_list ')'              { $<node>$ = create_func_call_node($<s_val>1, $<args_node>3); }
             | ID '(' ')'                        { $<node>$ = create_func_call_node($<s_val>1, NULL); }
+            | ID PERIOD ID                         { $<node>$ = create_tuple_field_node($<s_val>1, $<s_val>3); }
             ;
 
 args_list   : args_list COMMA expr              { $<args_node>$ = join_args_nodes($<args_node>1, create_args_node($<node>3)); }
@@ -268,6 +293,7 @@ int main(int argc, char* argv[]) {
     initialize_type_table();
     create_global_table();
     reset_labels();
+    num_fields = 0;
     for (int i = 0; i < argc; i++) {
         if (strcmp(argv[i], "--input") == 0 && (i+1) < argc) {
             FILE* fp = fopen(argv[i+1], "r");

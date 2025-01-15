@@ -30,7 +30,7 @@ global_symbol_table_t* global_symbol_table;
 int free_address;
 
 int get_binding(int size);
-global_symbol_table_t* create_global_symbol_table_entry(char* name, type_table_t* type, int size);
+global_symbol_table_t* create_global_symbol_table_entry(char* name, type_table_t* type);
 global_symbol_table_t* create_global_symbol_table_array_entry(char* name, type_table_t* inner_type, int outer_size, int inner_size);
 global_symbol_table_t* create_global_symbol_table_pointer_entry(char* name, type_table_t* type_table, int size);
 global_symbol_table_t* create_global_symbol_table_func_entry(char* name, type_table_t* return_type, decl_node_t* params_list);

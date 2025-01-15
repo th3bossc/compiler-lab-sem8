@@ -38,3 +38,18 @@ type_table_t* get_var_type(char* name, local_symbol_table_t* local_table) {
         return entry.entry.local_entry->type;
     
 }
+
+type_table_t* get_var_inner_type(char* name, local_symbol_table_t* local_table) {
+    symbol_table_entry_t entry = get_var_details(name, local_table);
+
+    if (entry.entry_type == ENTRY_NOT_FOUND) {
+        yyerror("{var_details:get_var_inner_type} Variable not declared");
+        exit(1);
+    }
+
+
+    if (entry.entry_type == ENTRY_TYPE_GLOBAL)
+        return entry.entry.global_entry->inner_type;
+    if (entry.entry_type == ENTRY_TYPE_LOCAL)
+        return entry.entry.local_entry->inner_type;
+}
