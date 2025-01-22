@@ -153,6 +153,7 @@ reg_index_t generate_string_code(ast_node_t* node, FILE* target_file, int* num_u
 
     reg_index_t free_reg = get_free_register(num_used_regs);
     immediate_addressing_str(free_reg, node->data.s_val, target_file);
+    node->value_type = default_types->str_type;
     return free_reg;
 }
 
@@ -220,6 +221,8 @@ reg_index_t generate_boolean_code(ast_node_t* node, FILE* target_file, int* num_
         exit(1);
     }
 
+    node->value_type = default_types->bool_type;
+
     if (strcmp(relop, ">") == 0) {
         greater_than(l_val_reg, r_val_reg, target_file);
         free_used_register(num_used_regs, r_val_reg);
@@ -274,11 +277,7 @@ reg_index_t generate_arr_index_code(ast_node_t* node, FILE* target_file, int* nu
         exit(1);
     }
 
-    // node->value_type = id_node->data.var_entry->inner_type;
     node->value_type = get_var_inner_type(id_node->data.s_val, l_symbol_table);
-    // int id_address = get_addr(id_node->data.s_val, l_symbol_table);
-    // add_immediate(expr_output, id_address, target_file);
-    // register_indirect_addressing_load(expr_output, expr_output, target_file);
     reg_index_t arr_data = load_var_data_to_reg(id_node->data.s_val, expr_output, target_file, l_symbol_table, num_used_regs);
     free_used_register(num_used_regs, expr_output);
     return arr_data;
@@ -405,18 +404,6 @@ reg_index_t generate_tuple_index_code(ast_node_t* node, FILE* target_file, int* 
         exit(1);
     }
 
-    // symbol_table_entry_t var_info = get_var_details(node->data.s_val, l_symbol_table);
-
-    // if (var_info.entry_type != ENTRY_TYPE_GLOBAL) {
-    //     yyerror("{code_generation:generate_tuple_index_code} tuples can only be declared globally");
-    //     exit(1);
-    // }
-
-    // if (!is_user_defined_type(var_info.entry.global_entry->type)) {
-    //     yyerror("{code_generation:generate_tuple_index_code} '.' operator can only be used on user defined types");
-    //     exit(1);
-    // }
-
     ast_node_t* field_node = node->right;
     field_list_t* field_info = field_lookup(id_type, field_node->data.s_val);
     if (field_info == NULL) {
@@ -495,7 +482,7 @@ void generate_assignment_code(ast_node_t* node, FILE* target_file, int* num_used
 
     reg_index_t expr_output = generate_expression_code(node->right, target_file, num_used_regs, l_symbol_table);
     type_table_t* output_type = is_type_compatible(node->left->value_type, node->right->value_type);
-    node->value_type = output_type;
+    node->value_type = default_types->void_type;
     if (output_type == NULL) {
         yyerror("{code_generation:generate_assignment_code} Type Mismatch");
         exit(1);
@@ -510,15 +497,18 @@ void generate_assignment_code(ast_node_t* node, FILE* target_file, int* num_used
     else {
         reg_index_t offset_reg = get_free_register(num_used_regs);
         int num_fields = output_type->num_fields;
+        reg_index_t data_to_copy = get_free_register(num_used_regs);
         for (int i = 0; i < num_fields; i++) {
             immediate_addressing_int(offset_reg, i, target_file);
             reg_index_t free_reg = load_var_addr_to_reg(id_node->data.s_val, offset_reg, target_file, l_symbol_table, num_used_regs);
-            register_indirect_addressing_load(expr_output, expr_output, target_file);
-            register_indirect_addressing_store(free_reg, expr_output, target_file);
+            register_indirect_addressing_load(data_to_copy, expr_output, target_file);
+            register_indirect_addressing_store(free_reg, data_to_copy, target_file);
             free_used_register(num_used_regs, free_reg);
+            incr_register(expr_output, target_file);
         }
         free_used_register(num_used_regs, expr_output);
         free_used_register(num_used_regs, offset_reg);
+        free_used_register(num_used_regs, data_to_copy);
     }
 }
 
@@ -543,16 +533,15 @@ void generate_arr_assignment_code(ast_node_t* node, FILE* target_file, int* num_
         exit(1);
     }
 
-    // arr_index_node->value_type = id_node->data.var_entry->inner_type;
     arr_index_node->value_type = get_var_inner_type(id_node->data.s_val, l_symbol_table);
-    // int id_address = get_addr(id_node->data.s_val, l_symbol_table);
-    // add_immediate(index_output, id_address, target_file);
     reg_index_t expr_output = generate_expression_code(node->right, target_file, num_used_regs, l_symbol_table);
     reg_index_t arr_index_loc = load_var_addr_to_reg(id_node->data.s_val, index_output, target_file, l_symbol_table, num_used_regs);
     if (node->left->value_type != node->right->value_type) {
         yyerror("{code_generation:generate_arr_assignment_code} Type mismatch");
         exit(1);
     }
+
+    node->value_type = default_types->void_type;
 
     register_indirect_addressing_store(arr_index_loc, expr_output, target_file);
     free_used_register(num_used_regs, index_output);
@@ -581,9 +570,8 @@ void generate_ptr_assignment_code(ast_node_t* node, FILE* target_file, int* num_
         exit(1);
     }
 
-    // reg_index_t free_reg = get_free_register(num_used_regs);
-    // int address = get_addr(id_node->data.s_val, l_symbol_table);
-    // direct_addressing_load(address, free_reg, target_file);
+    node->value_type = default_types->void_type;
+
     reg_index_t ptr_data = load_var_data_to_reg(id_node->data.s_val, -1, target_file, l_symbol_table, num_used_regs);
     register_indirect_addressing_store(ptr_data, expr_output, target_file);
     free_used_register(num_used_regs, expr_output);
@@ -606,18 +594,6 @@ void generate_tuple_field_assignment_code(ast_node_t* node, FILE* target_file, i
         exit(1);
     }
 
-    // symbol_table_entry_t var_info = get_var_details(id_node->data.s_val, l_symbol_table);
-    
-    // if (var_info.entry_type != ENTRY_TYPE_GLOBAL) {
-    //     yyerror("{code_generation:generate_tuple_field_assignment_code} tuples can only be declared globally");
-    //     exit(1);
-    // }
-
-    // if (!is_user_defined_type(var_info.entry.global_entry->type)) {
-    //     yyerror("{code_generation:generate_tuple_field_assignment_code} '.' operator can only be used on user defined types");
-    //     exit(1);
-    // }
-
     ast_node_t* field_node = id_node->right;
     field_list_t* field_info = field_lookup(id_type, field_node->data.s_val);
     if (field_info == NULL) {
@@ -628,7 +604,6 @@ void generate_tuple_field_assignment_code(ast_node_t* node, FILE* target_file, i
     id_node->value_type = id_type;
     reg_index_t field_index_reg = get_free_register(num_used_regs);
     immediate_addressing_int(field_index_reg, field_info->field_index, target_file);
-    // reg_index_t id_addr = load_var_addr_to_reg(id_node->data.s_val, field_index_reg, target_file, l_symbol_table, num_used_regs);
     add_registers(id_addr, field_index_reg, target_file);
     free_used_register(num_used_regs, field_index_reg);
     reg_index_t expr_output = generate_expression_code(expr_node, target_file, num_used_regs, l_symbol_table);
@@ -636,6 +611,8 @@ void generate_tuple_field_assignment_code(ast_node_t* node, FILE* target_file, i
         yyerror("{code_generation:generate_tuple_assignment_code} type mismatch");
         exit(1);
     }
+
+    node->value_type = default_types->void_type;
 
     register_indirect_addressing_store(id_addr, expr_output, target_file);
     free_used_register(num_used_regs, id_addr);
@@ -661,6 +638,8 @@ reg_index_t generate_print_code(ast_node_t* node, FILE* target_file, int* num_us
         free_used_register(num_used_regs, expr_output);
     }
 
+    node->value_type = default_types->int_type;
+
     return ret_val;
 }
 
@@ -676,6 +655,8 @@ reg_index_t generate_read_code(ast_node_t* node, FILE* target_file, int* num_use
         reg_index_t addr_reg = load_var_addr_to_reg(id_node->data.s_val, -1, target_file, l_symbol_table, num_used_regs);
         ret_val = read_into_reg_addr(addr_reg, target_file, num_used_regs);
         free_used_register(num_used_regs, addr_reg);
+        
+        node->value_type = default_types->int_type;
         return ret_val;
     }
     else if (node->left->node_type == NODE_TYPE_ARR_INDEX) {
@@ -694,6 +675,7 @@ reg_index_t generate_read_code(ast_node_t* node, FILE* target_file, int* num_use
         free_used_register(num_used_regs, free_reg);
         free_used_register(num_used_regs, addr_reg);
 
+        node->value_type = default_types->int_type;
         return ret_val;
     }
     else if (node->left->node_type == NODE_TYPE_TUPLE_FIELD) {
@@ -704,17 +686,6 @@ reg_index_t generate_read_code(ast_node_t* node, FILE* target_file, int* num_use
         yyerror("{code_generation:generate_read_code} '.' operator is only permitted on user defined types");
         exit(1);
         }
-        // symbol_table_entry_t var_info = get_var_details(id_node->data.s_val, l_symbol_table);
-
-        // if (var_info.entry_type != ENTRY_TYPE_GLOBAL) {
-        //     yyerror("{code_generation:generate_read_code} tuples can only be declared globally");
-        //     exit(1);
-        // }
-
-        // if (!is_user_defined_type(var_info.entry.global_entry->type)) {
-        //     yyerror("{code_generation:generate_read_code} '.' operator can only be used on user defined types");
-        //     exit(1);
-        // }
 
         ast_node_t* field_node = id_node->right;
         field_list_t* field_info = field_lookup(id_type, field_node->data.s_val);
@@ -733,6 +704,7 @@ reg_index_t generate_read_code(ast_node_t* node, FILE* target_file, int* num_use
         ret_val = read_into_reg_addr(id_addr, target_file, num_used_regs);
         free_used_register(num_used_regs, id_addr);
 
+        node->value_type = default_types->int_type;
         return ret_val;
     }
 }
@@ -757,6 +729,8 @@ void generate_if_code(ast_node_t* node, FILE* target_file, int* num_used_regs, l
     generate_statement_structure(body_node, target_file, num_used_regs, l_symbol_table, break_label, continue_label, func_entry);
     add_label(exit_if_label, target_file);
     free_used_register(num_used_regs, condition_output);
+
+    node->value_type = default_types->void_type;
 }
 
 void generate_ifelse_code(ast_node_t* node, FILE* target_file, int* num_used_regs, label_index_t* break_label, label_index_t* continue_label, local_symbol_table_t* l_symbol_table, global_symbol_table_t* func_entry) {
@@ -784,6 +758,8 @@ void generate_ifelse_code(ast_node_t* node, FILE* target_file, int* num_used_reg
     generate_statement_structure(else_body_node, target_file, num_used_regs, l_symbol_table, break_label, continue_label, func_entry);
     add_label(exit_if_label, target_file);
     free_used_register(num_used_regs, condition_output);
+
+    node->value_type = default_types->void_type;
 }
 
 void generate_while_code(ast_node_t* node, FILE* target_file, int* num_used_regs, local_symbol_table_t* l_symbol_table, global_symbol_table_t* func_entry) {
@@ -808,6 +784,8 @@ void generate_while_code(ast_node_t* node, FILE* target_file, int* num_used_regs
     jump_to_label(condn_label, target_file);
     add_label(exit_while_label, target_file);
     free_used_register(num_used_regs, condition_output);
+
+    node->value_type = default_types->void_type;
 } 
 
 void generate_do_while_code(ast_node_t* node, FILE* target_file, int* num_used_regs, local_symbol_table_t* l_symbol_table, global_symbol_table_t* func_entry) {
@@ -834,6 +812,8 @@ void generate_do_while_code(ast_node_t* node, FILE* target_file, int* num_used_r
     jump_not_zero_to_label(expr_output, start_label, target_file);
     add_label(end_do_while_label, target_file);
     free_used_register(num_used_regs, expr_output);
+
+    node->value_type = default_types->void_type;
 }
 
 void generate_repeat_code(ast_node_t* node, FILE* target_file, int* num_used_regs, local_symbol_table_t* l_symbol_table, global_symbol_table_t* func_entry) {
@@ -861,6 +841,8 @@ void generate_repeat_code(ast_node_t* node, FILE* target_file, int* num_used_reg
     jump_zero_to_label(expr_output, start_label, target_file);
     add_label(end_repeat_label, target_file);
     free_used_register(num_used_regs, expr_output);
+
+    node->value_type = default_types->void_type;
 }
 
 void generate_program_structure(ast_node_t* node, FILE* target_file) {
@@ -950,18 +932,7 @@ void generate_function_code(ast_node_t* node, FILE* target_file) {
         fprintf(target_file, "ADD R%d, %d\n", dest_reg, i+1);
 
         fprintf(target_file, "MOV [R%d], R%d\n", dest_reg, src_reg);
-
-        // [bp] = bp
-        // [bp-1] = addr to return to
-        // [bp-2] = ret_val
-        // [bp-3] = nth arg
-        // [bp-4] = n-1th arg
-        // [bp-3-(n-1)] = 1st arg bp - 2 - n+0 
     }
-
-
-
-
 
     generate_statement_structure(node->middle, target_file, num_used_registers, local_symbol_table, NULL, NULL, func_entry);
     
@@ -999,6 +970,8 @@ void generate_func_return_code(ast_node_t* node, FILE* target_file, int* num_use
     register_indirect_addressing_store(ret_val_reg, expr_output_reg, target_file);
     free_used_register(num_used_regs, expr_output_reg);
     free_used_register(num_used_regs, ret_val_reg);
+
+    node->value_type = expr_node->value_type;
 
     fprintf(target_file, "MOV SP, BP\n");
     fprintf(target_file, "POP BP\n");
@@ -1156,9 +1129,9 @@ void generate_program(ast_node_t* body, FILE* target_file) {
     
     global_symbol_table_t* main_entry = global_symbol_table_lookup("main");
     label_index_t main_label = main_entry->binding;
-    // PUSH MACHINE STATE
+
     save_machine_state(free_registers, target_file);
-    fprintf(target_file, "PUSH R0\n"); // space for ret_val
+    fprintf(target_file, "PUSH R0\n");
     fprintf(target_file, "CALL L%d\n", main_label);
     fprintf(target_file, "POP R0\n");
     restore_machine_state(free_registers, target_file);

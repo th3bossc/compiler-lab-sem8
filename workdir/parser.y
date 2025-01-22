@@ -22,7 +22,10 @@ type_table_t* var_type;
 type_table_t* arg_type;
 type_table_t* return_type;
 type_table_t* tuple_field_type;
+type_table_t* user_field_type;
+type_table_t* user_type;
 int num_fields;
+
 
 // #define YYDEBUG 1
 // int yydebug = 1;
@@ -31,6 +34,7 @@ int num_fields;
 %token SEMICOLON COMMA PERIOD
 %token END_BLOCK BEGIN_BLOCK
 %token BEGIN_DECL END_DECL
+%token BEGIN_TYPE END_TYPE
 %token NUM ID 
 %token INT STR
 %token WRITE READ
@@ -41,7 +45,6 @@ int num_fields;
 %token GT LT GTE LTE EQUALS NOT_EQUALS AND OR
 %token STRING_LITERAL
 %token RETURN
-
 %token TUPLE
 
 %left OR
@@ -69,20 +72,41 @@ int num_fields;
 
 %%
 
-// start       : BEGIN_DECL decl_list END_DECL BEGIN_BLOCK stmt_list END_BLOCK     { printf("Parse Complete\nPrefix: "); print_prefix($<node>5); printf("\n"); print_symbol_table(); parser_complete_handler($<node>5, output_path); exit(0); }
-//             | BEGIN_DECL decl_list END_DECL stmt_list                           { printf("Parse Complete\nPrefix: "); print_prefix($<node>4); printf("\n"); print_symbol_table(); parser_complete_handler($<node>4, output_path); exit(0); }
-//             | BEGIN_BLOCK stmt_list END_BLOCK                                   { printf("Parser Complete\nPrefix: "); print_prefix($<node>2); printf("\n"); print_symbol_table(); parser_complete_handler($<node>2, output_path); exit(0); }
-//             | BEGIN_DECL decl_list END_DECL                                     { printf("Parser Complete\n"); print_symbol_table(); exit(0); }
-//             ;
 
-program     : global_decl_block func_def_block  { printf("Parse complete [p1]\n"); print_prefix($<node>2); printf("\nGlobal Symbol Table: "); print_symbol_table(); parser_complete_handler($<node>2, output_path); }
-            | global_decl_block                 { printf("Parse complete [p2]\n"); printf("\nGlobal Symbol Table: "); print_symbol_table(); }
-            | func_def_block                    { printf("Parse complete [p3]\n"); print_prefix($<node>1); parser_complete_handler($<node>1, output_path); }
+program     : type_decl_block global_decl_block func_def_block  { printf("Parse complete [p1]\n"); print_prefix($<node>3); printf("\nGlobal Symbol Table: "); print_symbol_table(); parser_complete_handler($<node>3, output_path); }
+            ;
+
+type_decl_block : BEGIN_TYPE type_decl_list END_TYPE
+                | BEGIN_TYPE END_TYPE
+                | /* empty */
+                ;
+
+type_decl_list  : type_decl_list type_decl
+                | type_decl
+                ;
+
+type_decl   : ID '{' type_field_list '}'     { create_user_type_entry($<s_val>1, $<decl_node>3); }
+            ;
+
+type_field_list : type_field_list type_field        { $<decl_node>$ = join_decl_nodes($<decl_node>1, $<decl_node>2); }
+                | type_field                        { $<decl_node>$ = $<decl_node>1; }
+                ; 
+
+
+type_field  : field_type ID SEMICOLON       { $<decl_node>$ = create_user_type_decl_node($<s_val>2, $<s_val>1); }
+            ;
+
+
+
+field_type  : INT       { $<s_val>$ = $<s_val>1; }
+            | STR       { $<s_val>$ = $<s_val>1; }
+            | ID        { $<s_val>$ = $<s_val>1; }
             ;
 
 
 global_decl_block   : BEGIN_DECL global_decls_list END_DECL
                     | BEGIN_DECL END_DECL
+                    | /* empty */
                     ;
 
 global_decls_list   : global_decls_list global_decls
@@ -128,7 +152,7 @@ type        : INT           { var_type = default_types->int_type; }
 
 
 // custom syntax for tuples
-custom_type : TUPLE ID '(' tuple_fields_list ')'                    { $<type_table>$ = create_type_table_entry($<s_val>2, 0, $<decl_node>4); }
+custom_type : TUPLE ID '(' tuple_fields_list ')'                    { $<type_table>$ = create_type_table_entry($<s_val>2, 0, $<decl_node>4, true); }
             ;
 
 
@@ -146,23 +170,6 @@ tuple_field_type    : INT   { tuple_field_type = default_types->int_type; }
 ret_type    : INT       { return_type = default_types->int_type; }
             | STR       { return_type = default_types->str_type; }
             ;
-
-// decl_list   : decl_list decl        
-//             | decl
-//             ;
-
-// decl        : type id_list SEMICOLON 
-//             ;
-
-// id_list     : id_list COMMA id_type 
-//             | id_type
-//             ;
-
-// id_type     : ID                            { create_symbol_table_entry($<s_val>1, var_type, 1); }
-//             | ID '[' NUM ']'                { create_symbol_table_array_entry($<s_val>1, var_type, $<n_val>3, 1); }
-//             | ID '[' NUM ']' '[' NUM ']'    { create_symbol_table_array_entry($<s_val>1, var_type, $<n_val>3, $<n_val>6); }
-//             | '*' ID                        { create_symbol_table_pointer_entry($<s_val>2, var_type, 1); }
-//             ; 
 
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -267,7 +274,7 @@ expr        : expr '+' expr                     { $<node>$ = create_operator_nod
             | ID '[' expr ']' '[' expr ']'      { $<node>$ = create_2d_arr_index_node($<s_val>1, $<node>3, $<node>6); }
             | ID '(' args_list ')'              { $<node>$ = create_func_call_node($<s_val>1, $<args_node>3); }
             | ID '(' ')'                        { $<node>$ = create_func_call_node($<s_val>1, NULL); }
-            | expr PERIOD ID                         { $<node>$ = create_tuple_field_node($<node>1, $<s_val>3); }
+            | expr PERIOD ID                    { $<node>$ = create_tuple_field_node($<node>1, $<s_val>3); }
             ;
 
 args_list   : args_list COMMA expr              { $<args_node>$ = join_args_nodes($<args_node>1, create_args_node($<node>3)); }
@@ -282,7 +289,7 @@ void yyerror(const char* s) {
 
 void parser_complete_handler(ast_node_t* node, FILE* fp) {
     if (evaluate_mode) {
-        // evaluate_node(node);
+        // evaluation only implemented till stage 3
     }
     else {
         generate_program(node, fp);

@@ -10,6 +10,18 @@ decl_node_t* create_decl_node(char* name, type_table_t* type, type_table_t* inne
     return node;
 }
 
+
+decl_node_t* create_user_type_decl_node(char* name, char* type) {
+    decl_node_t* node = (decl_node_t*) malloc(sizeof(decl_node_t));
+
+    node->name = strdup(name);
+    node->undeclared_type = strdup(type);
+    node->next = NULL;
+
+    return node;
+}
+
+
 decl_node_t* join_decl_nodes(decl_node_t* node1, decl_node_t* node2) {
     if (node1 == NULL)
         return node2;

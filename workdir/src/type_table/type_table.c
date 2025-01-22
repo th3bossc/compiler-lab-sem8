@@ -46,7 +46,7 @@ field_list_t* field_lookup(type_table_t* tuple, char* field_name) {
 }
 
 
-type_table_t* create_type_table_entry(char* name, int size, decl_node_t* fields) {
+type_table_t* create_type_table_entry(char* name, int size, decl_node_t* fields, bool is_custom_type) {
     type_table_t* entry = (type_table_t*) malloc(sizeof(type_table_t));
 
     entry->fields = NULL;
@@ -54,6 +54,7 @@ type_table_t* create_type_table_entry(char* name, int size, decl_node_t* fields)
     entry->next = NULL;
     entry->num_fields = 0;
     entry->size = size;
+    entry->is_custom_type = is_custom_type;
 
     if (type_table == NULL) {
         type_table = entry;
@@ -74,6 +75,48 @@ type_table_t* create_type_table_entry(char* name, int size, decl_node_t* fields)
     }
     
     return entry;
+}
+
+
+type_table_t* create_user_type_entry(char* name, decl_node_t* fields) {
+    type_table_t* entry = (type_table_t*) malloc(sizeof(type_table_t));
+
+    entry->fields = NULL;
+    entry->name = strdup(name);
+    entry->next = NULL;
+    entry->size = 0;
+    entry->is_custom_type = true;
+
+
+    if (type_table == NULL) {
+        type_table = entry;
+    }
+    else {
+        type_table_t* tail = type_table;
+        while(tail->next != NULL)
+            tail = tail->next;
+        tail->next = entry;
+    }
+
+    if (fields == NULL) {
+        yyerror("{type_table:create_user_type_entry} Empty declaration for type");
+        exit(1);
+    }
+
+    for (decl_node_t* field = fields; field != NULL; field = field->next) {
+        type_table_t* field_type = get_type_table_entry(field->undeclared_type);
+        if (field_type == NULL) {
+            if (strcmp(field->undeclared_type, name) == 0) {
+                field_type = entry;
+            }
+            else {
+                yyerror("{type_table:create_user_type_entry} Undeclared type");
+                exit(1);
+            }
+        }
+        
+        create_field_list_entry(field->name, entry, field_type);
+    }
 }
 
 void destroy_type_table_entry(type_table_t* entry) {
@@ -118,9 +161,7 @@ bool is_primitive_type(type_table_t* type) {
 }
 
 bool is_user_defined_type(type_table_t* type) {
-    if (type->fields != NULL)
-        return true;
-    return false;
+    return type->is_custom_type;
 }
 
 
@@ -128,14 +169,14 @@ void initialize_type_table() {
     type_table = NULL;
 
 
-    type_table_t* int_type = create_type_table_entry("int", 1, NULL);
-    type_table_t* str_type = create_type_table_entry("str", 1, NULL);
-    type_table_t* bool_type = create_type_table_entry("bool", 1, NULL);
-    type_table_t* void_type = create_type_table_entry("void", 0, NULL);
-    type_table_t* arr_type = create_type_table_entry("arr", 1, NULL);
-    type_table_t* ptr_type = create_type_table_entry("ptr", 1, NULL);
-    type_table_t* func_type = create_type_table_entry("func", 0, NULL);
-    type_table_t* unset_type = create_type_table_entry("unset", 0, NULL);
+    type_table_t* int_type = create_type_table_entry("int", 1, NULL, false);
+    type_table_t* str_type = create_type_table_entry("str", 1, NULL, false);
+    type_table_t* bool_type = create_type_table_entry("bool", 1, NULL, false);
+    type_table_t* void_type = create_type_table_entry("void", 0, NULL, false);
+    type_table_t* arr_type = create_type_table_entry("arr", 1, NULL, false);
+    type_table_t* ptr_type = create_type_table_entry("ptr", 1, NULL, false);
+    type_table_t* func_type = create_type_table_entry("func", 0, NULL, false);
+    type_table_t* unset_type = create_type_table_entry("unset", 0, NULL, false);
 
     default_types = (primitive_types_t*) malloc(sizeof(primitive_types_t));
 

@@ -3,9 +3,10 @@
 input_path=""
 output_path=""
 evaluate=false
+keep_temp=false
 
 usage() {
-    echo "Usage: $0 --input <input_path> --output-path <output_path> [--evaluate]"
+    echo "Usage: $0 --input <input_path> --output-path <output_path> [--evaluate] [--keep-temp]"
     exit 1
 }
 
@@ -21,6 +22,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         --evaluate)
             evaluate=true
+            shift
+            ;;
+        --keep-temp)
+            keep_temp=true
             shift
             ;;
         *)
@@ -44,4 +49,6 @@ else
     echo "compilation failed"
 fi
 
-rm temp.xsm
+if [ "$keep_temp" = false ]; then
+    rm temp.xsm
+fi

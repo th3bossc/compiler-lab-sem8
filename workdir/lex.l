@@ -37,9 +37,6 @@
     return PERIOD;
 }
 
-decl { return BEGIN_DECL; }
-enddecl { return END_DECL; }
-
 int {
     yylval.s_val = strdup(yytext); 
     return INT; 
@@ -48,6 +45,12 @@ str {
     yylval.s_val = strdup(yytext);
     return STR; 
 }
+
+type { return BEGIN_TYPE; }
+endtype { return END_TYPE; }
+
+decl { return BEGIN_DECL; }
+enddecl { return END_DECL; }
 
 begin { return BEGIN_BLOCK; }
 end { return END_BLOCK; }
