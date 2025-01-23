@@ -57,6 +57,9 @@ end { return END_BLOCK; }
 
 write { return WRITE; }
 read { return READ; }
+alloc { return ALLOC; }
+initialize { return INIT_HEAP; }
+free { return FREE; }
 
 if { return IF; }
 endif { return ENDIF; }

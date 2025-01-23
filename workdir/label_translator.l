@@ -9,6 +9,10 @@ FILE* output_path = NULL;
 int instr_count = 0;
 int label_count = 0;
 bool line_counting_step = true;
+
+bool library_mode = false;
+
+int get_address(int instr_count);
 %}
 
 label L[0-9]+
@@ -30,9 +34,10 @@ label L[0-9]+
         int label;
         label_count++;
         sscanf(yytext, "L%d:", &label);
-        create_label_node(label, instr_count*2 + 2056);
+        create_label_node(label, get_address(instr_count));
     }
 }
+
 
 
 (call|CALL)(.*){label}\n  {
@@ -85,6 +90,10 @@ label L[0-9]+
     }
 }
 
+([ ]*)\n {
+    continue;
+}
+
 (.*)\n {
     if (line_counting_step) {
         instr_count++;
@@ -93,6 +102,7 @@ label L[0-9]+
         fprintf(output_path, "%s", yytext);
     }
 }
+
 
 
 
@@ -105,6 +115,15 @@ int yywrap() {
     }
     else {
         exit(0);
+    }
+}
+
+int get_address(int instr_count) {
+    if (library_mode) {
+        return instr_count*2;
+    }
+    else {
+        return instr_count*2 + 2056;
     }
 }
 
@@ -125,6 +144,9 @@ int main(int argc, char* argv[]) {
             if (fp) {
                 output_path = fp;
             }
+        }
+        else if (strcmp(argv[i], "--library-mode") == 0) {
+            library_mode = true;
         }
     }
 

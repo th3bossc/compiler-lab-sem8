@@ -45,6 +45,11 @@ reg_index_t print_addr(int addr, FILE* target_file, int* num_used_regs);
 reg_index_t read_into_addr(int addr, FILE* target_file, int* num_used_regs);
 reg_index_t read_into_reg_addr(reg_index_t reg_index, FILE* target_file, int* num_used_regs);
 
+reg_index_t initialize_heap_code(FILE* target_file, int* num_used_regs);
+reg_index_t alloc_memory(int size, FILE* target_file, int* num_used_regs);
+reg_index_t free_memory(reg_index_t location, FILE* target_file, int* num_used_regs);
+
+
 void exit_program(FILE* target_file, int* num_used_regs);
 void generate_headers(FILE* target_file);
 

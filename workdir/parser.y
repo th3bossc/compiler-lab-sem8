@@ -37,7 +37,7 @@ int num_fields;
 %token BEGIN_TYPE END_TYPE
 %token NUM ID 
 %token INT STR
-%token WRITE READ
+%token WRITE READ INIT_HEAP ALLOC FREE
 %token IF THEN ELSE ENDIF 
 %token WHILE DO ENDWHILE
 %token REPEAT UNTIL ENDREPEAT
@@ -150,9 +150,9 @@ type        : INT           { var_type = default_types->int_type; }
             | custom_type   { var_type = $<type_table>1; }
             ;
 
-
 // custom syntax for tuples
 custom_type : TUPLE ID '(' tuple_fields_list ')'                    { $<type_table>$ = create_type_table_entry($<s_val>2, 0, $<decl_node>4, true); }
+            | ID                                                    { $<type_table>$ = get_type_table_entry($<s_val>1); }
             ;
 
 
@@ -167,8 +167,9 @@ tuple_field_type    : INT   { tuple_field_type = default_types->int_type; }
                     | STR   { tuple_field_type = default_types->str_type; }
                     ;
 
-ret_type    : INT       { return_type = default_types->int_type; }
-            | STR       { return_type = default_types->str_type; }
+ret_type    : INT           { return_type = default_types->int_type; }
+            | STR           { return_type = default_types->str_type; }
+            | custom_type   { return_type = $<type_table>1; }
             ;
 
 
@@ -193,8 +194,9 @@ func_param      : arg_type ID       { $<decl_node>$ = create_decl_node($<s_val>2
                 | arg_type '*' ID   { $<decl_node>$ = create_decl_node($<s_val>3, default_types->ptr_type, arg_type); }
                 ;
 
-arg_type    : INT       { arg_type = default_types->int_type; }
-            | STR       { arg_type = default_types->str_type; }
+arg_type    : INT           { arg_type = default_types->int_type; }
+            | STR           { arg_type = default_types->str_type; }
+            | custom_type   { arg_type = $<type_table>1; }
             ;
 
 func_body   : BEGIN_BLOCK stmt_list END_BLOCK       { $<node>$ = $<node>2; }
@@ -212,6 +214,9 @@ stmt        : stmt_body SEMICOLON               { $<node>$ = $<node>1; }
 stmt_body   : stmt_assign                       { $<node>$ = $<node>1; }
             | stmt_read                         { $<node>$ = $<node>1; }
             | stmt_write                        { $<node>$ = $<node>1; }
+            | stmt_init_heap                    { $<node>$ = $<node>1; }
+            | stmt_alloc                        { $<node>$ = $<node>1; }
+            | stmt_free                         { $<node>$ = $<node>1; }
             | stmt_if                           { $<node>$ = $<node>1; }
             | stmt_while                        { $<node>$ = $<node>1; }
             | stmt_do_while                     { $<node>$ = $<node>1; }
@@ -235,6 +240,15 @@ stmt_write  : WRITE '(' expr ')'                { $<node>$ = create_write_node($
             ;
 
 stmt_read   : READ '(' expr ')'                 { $<node>$ = create_read_node($<node>3); }
+            ;
+
+stmt_init_heap : INIT_HEAP '(' ')'             { $<node>$ = create_init_heap_node(); }
+                ;
+
+stmt_alloc  : ALLOC '(' ')'                     { $<node>$ = create_alloc_node(); }
+            ;
+
+stmt_free   : FREE '(' ID ')'                   { $<node>$ = create_free_node($<s_val>3); }
             ;
 
 

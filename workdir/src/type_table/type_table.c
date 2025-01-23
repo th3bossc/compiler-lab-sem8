@@ -10,6 +10,7 @@ field_list_t* create_field_list_entry(char* name, type_table_t* struct_name, typ
     struct_name->num_fields++;
     struct_name->size = struct_name->num_fields;
 
+
     if (struct_name->fields == NULL) {
         struct_name->fields = entry;
     }
@@ -116,6 +117,11 @@ type_table_t* create_user_type_entry(char* name, decl_node_t* fields) {
         }
         
         create_field_list_entry(field->name, entry, field_type);
+    }
+
+    if (entry->num_fields > 8) {
+        yyerror("{type_table:create_user_type_entry} User defined types can't have more than 8 fields");
+        exit(1);
     }
 }
 

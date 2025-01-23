@@ -1,0 +1,35 @@
+type
+    bst {
+        int val;
+        bst left;
+        bst right;
+    }
+
+    tree {
+        bst root;
+    }
+endtype
+
+
+decl 
+    bst root, left, right;
+    tree t;
+enddecl
+
+
+int main() {
+    begin
+
+        left.val = 1;
+        right.val = 3;
+
+        root.val = 2;
+        root.left = left;
+        root.right = right;
+
+        t.root = root;
+
+        write(t.root.right.left.val);
+        return 0;
+    end
+}

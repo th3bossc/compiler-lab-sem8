@@ -63,8 +63,26 @@ ast_node_t* create_write_node(ast_node_t* expr) {
 
 ast_node_t* create_read_node(ast_node_t* expr) {
     node_value_t data;
-    // ast_node_t* node = create_node(data, default_types->int_type, NODE_TYPE_READ, var_node, NULL);
     ast_node_t* node = create_node(data, default_types->int_type, NODE_TYPE_READ, expr, NULL, NULL);
+    return node;
+}
+
+ast_node_t* create_init_heap_node() {
+    node_value_t data;
+    ast_node_t* node = create_node(data, default_types->void_type, NODE_TYPE_INIT_HEAP, NULL, NULL, NULL);
+    return node;
+}
+
+ast_node_t* create_alloc_node() {
+    node_value_t data;
+    ast_node_t* node = create_node(data, default_types->int_type, NODE_TYPE_ALLOC, NULL, NULL, NULL);
+    return node;
+}
+
+ast_node_t* create_free_node(char* var_name) {
+    node_value_t data;
+    ast_node_t* id_node = create_id_node(var_name);
+    ast_node_t* node = create_node(data, default_types->int_type, NODE_TYPE_FREE, NULL, NULL, id_node);
     return node;
 }
 

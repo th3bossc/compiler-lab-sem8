@@ -19,6 +19,9 @@ void yyerror(const char*);
 enum node_type_s {
     NODE_TYPE_WRITE,
     NODE_TYPE_READ,
+    NODE_TYPE_INIT_HEAP,
+    NODE_TYPE_ALLOC,
+    NODE_TYPE_FREE,
     NODE_TYPE_CONNECTOR,
     NODE_TYPE_ID,
     NODE_TYPE_TUPLE_FIELD,
@@ -71,6 +74,9 @@ ast_node_t* create_tuple_field_node(ast_node_t* addr_node, char* field_name);
 ast_node_t* create_operator_node(char op, ast_node_t* left, ast_node_t* right);
 ast_node_t* create_write_node(ast_node_t* expr);
 ast_node_t* create_read_node(ast_node_t* expr);
+ast_node_t* create_init_heap_node();
+ast_node_t* create_alloc_node();
+ast_node_t* create_free_node(char* var_name);
 ast_node_t* create_arr_index_node(char* arr_name, ast_node_t* index_node);
 ast_node_t* create_2d_arr_index_node(char* arr_name, ast_node_t* outer_index_node, ast_node_t* inner_index_node);
 ast_node_t* create_ptr_deref_node(ast_node_t* expr);

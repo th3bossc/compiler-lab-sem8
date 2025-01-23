@@ -1100,6 +1100,52 @@ reg_index_t read_into_reg_addr(reg_index_t reg_index, FILE* target_file, int* nu
 }
 
 
+reg_index_t initialize_heap_code(FILE* target_file, int* num_used_regs) {
+    reg_index_t func_name = get_free_register(num_used_regs);
+    immediate_addressing_str(func_name, "\"Heapset\"", target_file);
+    reg_index_t ret_val = get_free_register(num_used_regs);
+    reg_index_t free_reg = get_free_register(num_used_regs);
+
+    call_library_function(func_name, ret_val, ret_val, ret_val, ret_val, target_file);
+    post_library_call(ret_val, free_reg, target_file);
+
+    free_used_register(num_used_regs, func_name);
+    free_used_register(num_used_regs, free_reg);
+
+    return ret_val;
+}
+
+reg_index_t alloc_memory(int size, FILE* target_file, int* num_used_regs) {
+    reg_index_t func_name = get_free_register(num_used_regs);
+    immediate_addressing_str(func_name, "\"Alloc\"", target_file);
+    reg_index_t ret_val = get_free_register(num_used_regs);
+    reg_index_t arg_val = get_free_register(num_used_regs);
+    immediate_addressing_int(arg_val, size, target_file);
+
+    call_library_function(func_name, arg_val, arg_val, arg_val, ret_val, target_file);
+    post_library_call(ret_val, arg_val, target_file);
+
+    free_used_register(num_used_regs, func_name);
+    free_used_register(num_used_regs, arg_val);
+
+    return ret_val;
+}
+
+reg_index_t free_memory(reg_index_t location, FILE* target_file, int* num_used_regs) {
+    reg_index_t func_name = get_free_register(num_used_regs);
+    immediate_addressing_str(func_name, "\"Free\"", target_file);
+    reg_index_t ret_val = get_free_register(num_used_regs);
+    
+    call_library_function(func_name, location, location, location, ret_val, target_file);
+    post_library_call(ret_val, func_name, target_file);
+
+    free_used_register(num_used_regs, func_name);
+
+    return ret_val;
+}
+
+
+
 void exit_program(FILE* target_file, int* num_used_regs) {
     reg_index_t func_name = get_free_register(num_used_regs);
     immediate_addressing_str(func_name, "\"Exit\"", target_file);
