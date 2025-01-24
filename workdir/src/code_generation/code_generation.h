@@ -24,11 +24,16 @@ reg_index_t generate_ptr_ref_code(ast_node_t* node, FILE* target_file, int* num_
 reg_index_t generate_id_expr_code(ast_node_t* node, FILE* target_file, int* num_used_regs, local_symbol_table_t* l_symbol_table);
 reg_index_t generate_func_call_code(ast_node_t* node, FILE* target_file, int* num_used_regs, local_symbol_table_t* l_symbol_table);
 reg_index_t generate_tuple_index_code(ast_node_t* node, FILE* target_file, int* num_used_regs, local_symbol_table_t* l_symbol_table);
+reg_index_t generate_init_heap_code(FILE* target_file, int* num_used_regs);
+reg_index_t generate_alloc_code(FILE* target_file, int* num_used_regs);
+reg_index_t generate_free_heap_code(ast_node_t* node, FILE* target_file, int* num_used_regs, local_symbol_table_t* l_symbol_table);
+
 
 void generate_assignment_code(ast_node_t* node, FILE* target_file, int* num_used_regs, local_symbol_table_t* l_symbol_table);
 void generate_arr_assignment_code(ast_node_t* node, FILE* target_file, int* num_used_regs, local_symbol_table_t* l_symbol_table);
 void generate_ptr_assignment_code(ast_node_t* node, FILE* target_file, int* num_used_regs, local_symbol_table_t* l_symbol_table);
 void generate_tuple_field_assignment_code(ast_node_t* node, FILE* target_file, int* num_used_regs, local_symbol_table_t* l_symbol_table);
+
 
 reg_index_t generate_print_code(ast_node_t* node, FILE* target_file, int* num_used_regs, local_symbol_table_t* l_symbol_table);
 reg_index_t generate_read_code(ast_node_t* node, FILE* target_file, int* num_used_regs, local_symbol_table_t* l_symbol_table);

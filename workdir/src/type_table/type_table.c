@@ -47,7 +47,7 @@ field_list_t* field_lookup(type_table_t* tuple, char* field_name) {
 }
 
 
-type_table_t* create_type_table_entry(char* name, int size, decl_node_t* fields, bool is_custom_type) {
+type_table_t* create_type_table_entry(char* name, int size, decl_node_t* fields, var_type_t type) {
     type_table_t* entry = (type_table_t*) malloc(sizeof(type_table_t));
 
     entry->fields = NULL;
@@ -55,7 +55,7 @@ type_table_t* create_type_table_entry(char* name, int size, decl_node_t* fields,
     entry->next = NULL;
     entry->num_fields = 0;
     entry->size = size;
-    entry->is_custom_type = is_custom_type;
+    entry->type = type;
 
     if (type_table == NULL) {
         type_table = entry;
@@ -86,7 +86,7 @@ type_table_t* create_user_type_entry(char* name, decl_node_t* fields) {
     entry->name = strdup(name);
     entry->next = NULL;
     entry->size = 0;
-    entry->is_custom_type = true;
+    entry->type = VAR_TYPE_CUSTOM;
 
 
     if (type_table == NULL) {
@@ -155,10 +155,8 @@ field_list_t* get_field_entry(type_table_t* struct_name, int field_index) {
 
 bool is_primitive_type(type_table_t* type) {
     if (
-        (type == default_types->int_type) ||
-        (type == default_types->str_type) ||
-        (type == default_types->bool_type) ||
-        (type == default_types->void_type)
+        (type->type == VAR_TYPE_PRIMITIVE) &&
+        type != default_types->unset_type
     ) {
         return true;
     }
@@ -167,7 +165,11 @@ bool is_primitive_type(type_table_t* type) {
 }
 
 bool is_user_defined_type(type_table_t* type) {
-    return type->is_custom_type;
+    return (type->type == VAR_TYPE_CUSTOM);
+}
+
+bool is_tuple(type_table_t* type) {
+    return (type->type == VAR_TYPE_TUPLE);
 }
 
 
@@ -175,14 +177,14 @@ void initialize_type_table() {
     type_table = NULL;
 
 
-    type_table_t* int_type = create_type_table_entry("int", 1, NULL, false);
-    type_table_t* str_type = create_type_table_entry("str", 1, NULL, false);
-    type_table_t* bool_type = create_type_table_entry("bool", 1, NULL, false);
-    type_table_t* void_type = create_type_table_entry("void", 0, NULL, false);
-    type_table_t* arr_type = create_type_table_entry("arr", 1, NULL, false);
-    type_table_t* ptr_type = create_type_table_entry("ptr", 1, NULL, false);
-    type_table_t* func_type = create_type_table_entry("func", 0, NULL, false);
-    type_table_t* unset_type = create_type_table_entry("unset", 0, NULL, false);
+    type_table_t* int_type = create_type_table_entry("int", 1, NULL, VAR_TYPE_PRIMITIVE);
+    type_table_t* str_type = create_type_table_entry("str", 1, NULL, VAR_TYPE_PRIMITIVE);
+    type_table_t* bool_type = create_type_table_entry("bool", 1, NULL, VAR_TYPE_PRIMITIVE);
+    type_table_t* void_type = create_type_table_entry("void", 0, NULL, VAR_TYPE_PRIMITIVE);
+    type_table_t* arr_type = create_type_table_entry("arr", 1, NULL, VAR_TYPE_COMPOUND);
+    type_table_t* ptr_type = create_type_table_entry("ptr", 1, NULL, VAR_TYPE_COMPOUND);
+    type_table_t* func_type = create_type_table_entry("func", 0, NULL, VAR_TYPE_COMPOUND);
+    type_table_t* unset_type = create_type_table_entry("unset", 0, NULL, VAR_TYPE_PRIMITIVE);
 
     default_types = (primitive_types_t*) malloc(sizeof(primitive_types_t));
 

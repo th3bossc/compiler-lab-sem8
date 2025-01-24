@@ -10,6 +10,11 @@
 #define label_index_t int
 #define NUM_REGISTERS 20
 #define ERR_NO_REGS -1
+#define RESERVED_RETURN_REG 0
+
+
+//forward decls
+typedef struct symbol_table_entry_s symbol_table_entry_t;
 
 // util funcs
 label_index_t used_labels;
@@ -83,8 +88,8 @@ void add_breakpoint(FILE* fp);          // BRKP
 
 
 // compound instrs
-void call_library_function(reg_index_t func_name, reg_index_t arg1, reg_index_t arg2, reg_index_t arg3, reg_index_t ret_val, FILE* fp);
-void post_library_call(reg_index_t ret_val, reg_index_t free_reg, FILE* fp);
+void call_library_function(reg_index_t func_name, reg_index_t arg1, reg_index_t arg2, reg_index_t arg3, reg_index_t ret_val, int* num_used_regs, FILE* fp);
+void post_library_call(reg_index_t ret_val, reg_index_t free_reg, int* num_used_regs, FILE* fp);
 void save_machine_state(int* num_used_regs, FILE* fp);
 void restore_machine_state(int* num_used_regs, FILE* fp);
 

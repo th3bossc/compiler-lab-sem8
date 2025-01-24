@@ -162,7 +162,8 @@ void add_breakpoint(FILE* fp) {
 
 
 
-void call_library_function(reg_index_t func_name, reg_index_t arg1, reg_index_t arg2, reg_index_t arg3, reg_index_t ret_val, FILE* fp) {
+void call_library_function(reg_index_t func_name, reg_index_t arg1, reg_index_t arg2, reg_index_t arg3, reg_index_t ret_val, int* num_used_regs, FILE* fp) {
+    save_machine_state(num_used_regs, fp);
     push_register(func_name, fp);
     push_register(arg1, fp);
     push_register(arg2, fp);
@@ -171,12 +172,13 @@ void call_library_function(reg_index_t func_name, reg_index_t arg1, reg_index_t 
     call_function(0, fp);
 }
 
-void post_library_call(reg_index_t ret_val, reg_index_t free_reg, FILE* fp) {
+void post_library_call(reg_index_t ret_val, reg_index_t free_reg, int* num_used_regs, FILE* fp) {
     pop_register(ret_val, fp);
     pop_register(free_reg, fp);
     pop_register(free_reg, fp);
     pop_register(free_reg, fp);
     pop_register(free_reg, fp);
+    restore_machine_state(num_used_regs, fp);
 }
 
 void save_machine_state(int* num_used_regs, FILE* fp) {

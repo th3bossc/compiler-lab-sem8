@@ -1,0 +1,36 @@
+type 
+    Test {
+        int a;
+    }
+endtype
+
+
+decl 
+    Test a, b, c;
+enddecl 
+
+int main() {
+    decl 
+        int temp;
+    enddecl
+
+    begin 
+        initialize();
+        a = alloc();
+        b = alloc();
+        c = alloc();
+
+        a.a = 5;
+        b.a = 8;
+        c.a = 8;
+
+        write(a.a*b.a);
+        write(b.a);
+        write(c.a);
+
+        temp = a.a*b.a + c.a;
+        write(temp);
+
+        return 0;
+    end
+}

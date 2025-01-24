@@ -12,24 +12,27 @@ endtype
 
 
 decl 
-    bst root, left, right;
-    tree t;
+    bst a, b, c, d, e, f;
+    tree t, u, v, w, x, y, z;
 enddecl
 
 
 int main() {
     begin
-
-        left.val = 1;
-        right.val = 3;
-
-        root.val = 2;
-        root.left = left;
-        root.right = right;
-
-        t.root = root;
-
-        write(t.root.right.left.val);
+        initialize();
+        a = null;
+        write(a);
+        if (a == null) then
+            write("a null");
+        else 
+            write("a not null");
+        endif;
+        a = alloc();
+        if (a == null) then
+            write("a null");
+        else 
+            write("a not null");
+        endif;
         return 0;
     end
 }

@@ -69,7 +69,7 @@ ast_node_t* create_read_node(ast_node_t* expr) {
 
 ast_node_t* create_init_heap_node() {
     node_value_t data;
-    ast_node_t* node = create_node(data, default_types->void_type, NODE_TYPE_INIT_HEAP, NULL, NULL, NULL);
+    ast_node_t* node = create_node(data, default_types->int_type, NODE_TYPE_INIT_HEAP, NULL, NULL, NULL);
     return node;
 }
 

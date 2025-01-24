@@ -46,6 +46,7 @@ int num_fields;
 %token STRING_LITERAL
 %token RETURN
 %token TUPLE
+%token NULLPTR
 
 %left OR
 %left AND
@@ -53,10 +54,10 @@ int num_fields;
 %left EQUALS NOT_EQUALS
 
 %left '+' '-'
-%nonassoc PERIOD
 %left '*' '/'
 %left '&'
 %nonassoc '[' ']' '%'
+%nonassoc PERIOD
 
 
 
@@ -151,7 +152,7 @@ type        : INT           { var_type = default_types->int_type; }
             ;
 
 // custom syntax for tuples
-custom_type : TUPLE ID '(' tuple_fields_list ')'                    { $<type_table>$ = create_type_table_entry($<s_val>2, 0, $<decl_node>4, true); }
+custom_type : TUPLE ID '(' tuple_fields_list ')'                    { $<type_table>$ = create_type_table_entry($<s_val>2, 0, $<decl_node>4, VAR_TYPE_TUPLE); }
             | ID                                                    { $<type_table>$ = get_type_table_entry($<s_val>1); }
             ;
 
@@ -215,7 +216,7 @@ stmt_body   : stmt_assign                       { $<node>$ = $<node>1; }
             | stmt_read                         { $<node>$ = $<node>1; }
             | stmt_write                        { $<node>$ = $<node>1; }
             | stmt_init_heap                    { $<node>$ = $<node>1; }
-            | stmt_alloc                        { $<node>$ = $<node>1; }
+            // | stmt_alloc                        { $<node>$ = $<node>1; }
             | stmt_free                         { $<node>$ = $<node>1; }
             | stmt_if                           { $<node>$ = $<node>1; }
             | stmt_while                        { $<node>$ = $<node>1; }
@@ -289,6 +290,10 @@ expr        : expr '+' expr                     { $<node>$ = create_operator_nod
             | ID '(' args_list ')'              { $<node>$ = create_func_call_node($<s_val>1, $<args_node>3); }
             | ID '(' ')'                        { $<node>$ = create_func_call_node($<s_val>1, NULL); }
             | expr PERIOD ID                    { $<node>$ = create_tuple_field_node($<node>1, $<s_val>3); }
+            | stmt_alloc                        { $<node>$ = $<node>1; }
+            | stmt_init_heap                    { $<node>$ = $<node>1; }
+            | stmt_free                         { $<node>$ = $<node>1; }    
+            | NULLPTR                           { $<node>$ = create_num_node(0); }  
             ;
 
 args_list   : args_list COMMA expr              { $<args_node>$ = join_args_nodes($<args_node>1, create_args_node($<node>3)); }

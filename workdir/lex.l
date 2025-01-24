@@ -82,6 +82,7 @@ tuple { return TUPLE; }
 AND { return AND; }
 OR { return OR; }
 
+null { return NULLPTR; }
 
 ">" { return GT; }
 ">=" { return GTE; }
