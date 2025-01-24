@@ -1,0 +1,38 @@
+type    
+    Student {
+        str name;
+        int age;
+    }
+endtype
+
+decl 
+    Student students[10];
+enddecl 
+
+
+
+int main() {
+    decl 
+        int i;
+    enddecl 
+    begin 
+        initialize();
+        i = 0;
+        while (i < 10) do 
+            students[i] = alloc();
+            students[i].name = "hi";
+            students[i].age = 20+i;
+
+            i = i+1;
+        endwhile;
+
+        i = 9;
+        while (i >= 0) do 
+            write(students[i].name);
+            write(students[i].age);
+            write(" ");
+            i = i-1;
+        endwhile;
+        return 0;
+    end 
+}

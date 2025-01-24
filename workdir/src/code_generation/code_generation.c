@@ -582,7 +582,9 @@ void generate_arr_assignment_code(ast_node_t* node, FILE* target_file, int* num_
     arr_index_node->value_type = get_var_inner_type(id_node->data.s_val, l_symbol_table);
     reg_index_t expr_output = generate_expression_code(node->right, target_file, num_used_regs, l_symbol_table);
     reg_index_t arr_index_loc = load_var_addr_to_reg(id_node->data.s_val, index_output, target_file, l_symbol_table, num_used_regs);
-    if (node->left->value_type != node->right->value_type) {
+    
+    type_table_t* output_type = is_type_compatible(node->left->value_type, node->right->value_type);
+    if (output_type == NULL) {
         yyerror("{code_generation:generate_arr_assignment_code} Type mismatch");
         exit(1);
     }
