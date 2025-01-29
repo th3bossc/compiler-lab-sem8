@@ -1,0 +1,30 @@
+type 
+    Bst {
+        int a;
+    }
+endtype
+
+
+decl 
+    Bst arr[129];
+enddecl
+
+
+int main() {
+    decl 
+        int i;
+    enddecl 
+    begin 
+        i = 0;
+        initialize();
+        while (i < 129) do 
+            arr[i] = alloc();
+            write(arr[i]);
+            i = i+1;
+        endwhile;
+
+
+
+        return 0;
+    end
+}

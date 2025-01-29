@@ -40,8 +40,6 @@ ast_node_t* create_id_node(char* var_name) {
 
 ast_node_t* create_tuple_field_node(ast_node_t* addr_node, char* field_name) {
     node_value_t data;
-    node_value_t field_data;
-    field_data.s_val = strdup(field_name);
     ast_node_t* field_node = create_id_node(field_name);
     ast_node_t* node = create_node(data, default_types->unset_type, NODE_TYPE_TUPLE_FIELD, addr_node, field_node, NULL);
     return node;
@@ -283,17 +281,30 @@ void print_prefix(ast_node_t* node) {
         case NODE_TYPE_READ:
             printf("READ ");
             break;
+        case NODE_TYPE_INIT_HEAP:
+            printf("INITIALIZE ");
+            break;
+        case NODE_TYPE_ALLOC:
+            printf("ALLOC ");
+            break;
+        case NODE_TYPE_FREE:
+            printf("FREE ");
+            break;
         case NODE_TYPE_CONNECTOR:
             printf("CONNECTOR ");
             break;
         case NODE_TYPE_ID:
             printf("%s ", node->data.s_val);
             break;
+        case NODE_TYPE_TUPLE_FIELD:
+            printf(". ");
+            break;
         case NODE_TYPE_INT:
             printf("%d ", node->data.n_val);
             break;
         case NODE_TYPE_STRING:
             printf("%s ", node->data.s_val);
+            break;
         case NODE_TYPE_ASSIGN:
         case NODE_TYPE_OPERATOR:
             printf("%c ", node->data.c_val);
