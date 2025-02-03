@@ -9,6 +9,7 @@
 #include "../symbol_table/local_symbol_table.h"
 #include "args_node.h"
 #include "../instr_set/instr_set.h"
+#include "class_decl_node.h"
 typedef enum node_type_s node_type_t;
 typedef struct ast_node_s ast_node_t;
 typedef union node_value_s node_value_t;

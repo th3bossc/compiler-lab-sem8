@@ -46,6 +46,10 @@ str {
     return STR; 
 }
 
+class { return BEGIN_CLASS; }
+endclass { return END_CLASS; }
+
+
 type { return BEGIN_TYPE; }
 endtype { return END_TYPE; }
 

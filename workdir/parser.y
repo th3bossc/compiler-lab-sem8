@@ -9,6 +9,10 @@
 #include "src/type_table/type_table.h"
 #include "src/node/args_node.h"
 #include "src/instr_set/instr_set.h"
+#include "src/class_table/class_table.h"
+#include "src/node/class_decl_node.h"
+
+
 
 extern FILE *yyin;
 void yyerror(const char*);
@@ -18,14 +22,12 @@ FILE* output_path = NULL;
 bool evaluate_mode = false;
 void parser_complete_handler(ast_node_t*, FILE*);
 
-type_table_t* var_type;
-type_table_t* arg_type;
-type_table_t* return_type;
-type_table_t* tuple_field_type;
-type_table_t* user_field_type;
-type_table_t* user_type;
+type_table_t* var_type_entry;
+type_table_t* arg_type_entry;
+type_table_t* return_type_entry;
+type_table_t* tuple_field_type_entry;
+type_table_t* class_field_type_entry;
 int num_fields;
-
 
 // #define YYDEBUG 1
 // int yydebug = 1;
@@ -35,6 +37,7 @@ int num_fields;
 %token END_BLOCK BEGIN_BLOCK
 %token BEGIN_DECL END_DECL
 %token BEGIN_TYPE END_TYPE
+%token BEGIN_CLASS END_CLASS
 %token NUM ID 
 %token INT STR
 %token WRITE READ INIT_HEAP ALLOC FREE
@@ -59,12 +62,11 @@ int num_fields;
 %nonassoc '[' ']' '%'
 %nonassoc PERIOD
 
-
-
 %union {
     ast_node_t* node;
     decl_node_t* decl_node;
     args_node_t* args_node;
+    class_decl_node_t* class_decl_node;
     type_table_t* type_table;
     char c_val;
     char* s_val;
@@ -74,13 +76,47 @@ int num_fields;
 %%
 
 
-program     : type_decl_block global_decl_block func_def_block  { printf("Parse complete [p1]\n"); print_prefix($<node>3); printf("\nGlobal Symbol Table: "); print_symbol_table(); parser_complete_handler($<node>3, output_path); }
+program     : type_decl_block class_decl_block global_decl_block func_def_block  { printf("Parse complete [p1]\n"); print_prefix($<node>3); printf("\nGlobal Symbol Table: "); print_symbol_table(); parser_complete_handler($<node>3, output_path); }
             ;
 
 type_decl_block : BEGIN_TYPE type_decl_list END_TYPE
                 | BEGIN_TYPE END_TYPE
                 | /* empty */
                 ;
+
+
+class_decl_block    : BEGIN_CLASS class_decl_list END_CLASS
+                    | BEGIN_CLASS END_CLASS
+                    | /* empty */
+                    ;
+
+class_decl_list : class_decl_list class_decl 
+                | class_decl 
+                ;
+
+
+class_decl  : ID '{' class_field_list class_method_list '}'     { create_class_table_entry($<s_val>1, $<class_decl_node>3, $<class_decl_node>4, NULL); }     
+            ;
+
+class_field_list    : BEGIN_DECL class_fields END_DECL  { $<class_decl_node>$ = $<class_decl_node>2; }
+                    ;
+
+class_fields    : class_fields class_field      { $<class_decl_node>$ = join_class_decl_nodes($<class_decl_node>1, $<class_decl_node>2); }
+                | class_field                   { $<class_decl_node>$ = $<class_decl_node>1; }
+                ;
+
+class_field : class_field_type ID SEMICOLON                 { $<class_decl_node>$ = create_class_decl_field_node($<s_val>2, class_field_type_entry); }
+            | class_field_type ID '(' func_params_list ')'  { $<class_decl_node>$ = create_class_decl_method_node($<s_val>2, class_field_type_entry, $<decl_node>4, NULL, NULL); }
+            ;
+
+class_field_type    : INT   { class_field_type_entry = default_types->int_type; }
+                    | STR   { class_field_type_entry = default_types->str_type; }
+
+                    ;
+
+class_method_list   : func_def_block    { $<node>$ = $<node>1; }
+                    ;
+
 
 type_decl_list  : type_decl_list type_decl
                 | type_decl
@@ -121,12 +157,12 @@ gloabl_id_list  : gloabl_id_list COMMA global_id
                 | global_id 
                 ;
 
-global_id   : ID                                        { create_global_symbol_table_entry($<s_val>1, var_type); }
-            | ID '[' NUM ']'                            { create_global_symbol_table_array_entry($<s_val>1, var_type, $<n_val>3, 1); }
-            | ID '[' NUM ']' '[' NUM ']'                { create_global_symbol_table_array_entry($<s_val>1, var_type, $<n_val>3, $<n_val>6); }
-            | '*' ID                                    { create_global_symbol_table_pointer_entry($<s_val>2, var_type, 1); }
-            | ID '(' func_params_list ')'               { create_global_symbol_table_func_entry($<s_val>1, var_type, $<decl_node>3); }
-            | ID '(' ')'                                { create_global_symbol_table_func_entry($<s_val>1, var_type, NULL); }
+global_id   : ID                                        { create_global_symbol_table_entry($<s_val>1, var_type_entry); }
+            | ID '[' NUM ']'                            { create_global_symbol_table_array_entry($<s_val>1, var_type_entry, $<n_val>3, 1); }
+            | ID '[' NUM ']' '[' NUM ']'                { create_global_symbol_table_array_entry($<s_val>1, var_type_entry, $<n_val>3, $<n_val>6); }
+            | '*' ID                                    { create_global_symbol_table_pointer_entry($<s_val>2, var_type_entry, 1); }
+            | ID '(' func_params_list ')'               { create_global_symbol_table_func_entry($<s_val>1, var_type_entry, $<decl_node>3); }
+            | ID '(' ')'                                { create_global_symbol_table_func_entry($<s_val>1, var_type_entry, NULL); }
             ;
 
 local_decl_block    : BEGIN_DECL local_decls_list END_DECL      { $<decl_node>$ = $<decl_node>2; }
@@ -142,13 +178,13 @@ local_decls     : type local_id_list SEMICOLON          { $<decl_node>$ = $<decl
                 ;
 
 
-local_id_list   : local_id_list COMMA ID    { $<decl_node>$ = join_decl_nodes($<decl_node>1, create_decl_node($<s_val>3, var_type, NULL)); }
-                | ID                        { $<decl_node>$ = create_decl_node($<s_val>1, var_type, NULL); }
+local_id_list   : local_id_list COMMA ID    { $<decl_node>$ = join_decl_nodes($<decl_node>1, create_decl_node($<s_val>3, var_type_entry, NULL)); }
+                | ID                        { $<decl_node>$ = create_decl_node($<s_val>1, var_type_entry, NULL); }
 
   
-type        : INT           { var_type = default_types->int_type; }
-            | STR           { var_type = default_types->str_type; }
-            | custom_type   { var_type = $<type_table>1; }
+type        : INT           { var_type_entry = default_types->int_type; }
+            | STR           { var_type_entry = default_types->str_type; }
+            | custom_type   { var_type_entry = $<type_table>1; }
             ;
 
 // custom syntax for tuples
@@ -161,16 +197,16 @@ tuple_fields_list   : tuple_fields_list COMMA tuple_field_element   { $<decl_nod
                     | tuple_field_element                           { $<decl_node>$ = $<decl_node>1; }
                     ;
 
-tuple_field_element : tuple_field_type  ID  { $<decl_node>$ = create_decl_node($<s_val>2, tuple_field_type, NULL); num_fields++; }
+tuple_field_element : tuple_field_type  ID  { $<decl_node>$ = create_decl_node($<s_val>2, tuple_field_type_entry, NULL); num_fields++; }
                     ;
 
-tuple_field_type    : INT   { tuple_field_type = default_types->int_type; }
-                    | STR   { tuple_field_type = default_types->str_type; }
+tuple_field_type    : INT   { tuple_field_type_entry = default_types->int_type; }
+                    | STR   { tuple_field_type_entry = default_types->str_type; }
                     ;
 
-ret_type    : INT           { return_type = default_types->int_type; }
-            | STR           { return_type = default_types->str_type; }
-            | custom_type   { return_type = $<type_table>1; }
+ret_type    : INT           { return_type_entry = default_types->int_type; }
+            | STR           { return_type_entry = default_types->str_type; }
+            | custom_type   { return_type_entry = $<type_table>1; }
             ;
 
 
@@ -181,23 +217,23 @@ func_def_block  : func_def_block func_def       { $<node>$ = create_program_node
                 ;
 
 
-func_def    : ret_type ID '(' func_params_list ')' '{' local_decl_block func_body '}'       { $<node>$ = create_func_body_node($<s_val>2, return_type, $<decl_node>4, $<decl_node>7, $<node>8); }
-            | ret_type ID '(' func_params_list ')' '{' func_body '}'                        { $<node>$ = create_func_body_node($<s_val>2, return_type, $<decl_node>4, NULL, $<node>7); }
-            | ret_type ID '(' ')' '{' local_decl_block func_body '}'                        { $<node>$ = create_func_body_node($<s_val>2, return_type, NULL, $<decl_node>6, $<node>7); }
-            | ret_type ID '(' ')' '{' func_body '}'                                         { $<node>$ = create_func_body_node($<s_val>2, return_type, NULL, NULL, $<node>6); }
+func_def    : ret_type ID '(' func_params_list ')' '{' local_decl_block func_body '}'       { $<node>$ = create_func_body_node($<s_val>2, return_type_entry, $<decl_node>4, $<decl_node>7, $<node>8); }
+            | ret_type ID '(' func_params_list ')' '{' func_body '}'                        { $<node>$ = create_func_body_node($<s_val>2, return_type_entry, $<decl_node>4, NULL, $<node>7); }
+            | ret_type ID '(' ')' '{' local_decl_block func_body '}'                        { $<node>$ = create_func_body_node($<s_val>2, return_type_entry, NULL, $<decl_node>6, $<node>7); }
+            | ret_type ID '(' ')' '{' func_body '}'                                         { $<node>$ = create_func_body_node($<s_val>2, return_type_entry, NULL, NULL, $<node>6); }
             ; 
 
 func_params_list    : func_params_list COMMA func_param     { $<decl_node>$ = join_decl_nodes($<decl_node>1, $<decl_node>3); }
                     | func_param                            { $<decl_node>$ = $<decl_node>1; }
                     ;
 
-func_param      : arg_type ID       { $<decl_node>$ = create_decl_node($<s_val>2, arg_type, NULL); }
-                | arg_type '*' ID   { $<decl_node>$ = create_decl_node($<s_val>3, default_types->ptr_type, arg_type); }
+func_param      : arg_type ID       { $<decl_node>$ = create_decl_node($<s_val>2, arg_type_entry, NULL); }
+                | arg_type '*' ID   { $<decl_node>$ = create_decl_node($<s_val>3, default_types->ptr_type, arg_type_entry); }
                 ;
 
-arg_type    : INT           { arg_type = default_types->int_type; }
-            | STR           { arg_type = default_types->str_type; }
-            | custom_type   { arg_type = $<type_table>1; }
+arg_type    : INT           { arg_type_entry = default_types->int_type; }
+            | STR           { arg_type_entry = default_types->str_type; }
+            | custom_type   { arg_type_entry = $<type_table>1; }
             ;
 
 func_body   : BEGIN_BLOCK stmt_list END_BLOCK       { $<node>$ = $<node>2; }
