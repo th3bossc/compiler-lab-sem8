@@ -34,7 +34,7 @@ class_table_t* create_class_table_entry(char* name, class_decl_node_t* decl_list
             entry->num_fields++;
         }
         else {
-            class_method_t* method = create_class_method_entry(node->name, node->type, node->params, NULL, NULL, get_label());
+            class_method_t* method = create_class_method_entry(entry, node->name, node->type, node->params, NULL, NULL, get_label());
 
             if (method_tail == NULL) {
                 method_tail = method;

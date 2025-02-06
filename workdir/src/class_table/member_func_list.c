@@ -1,7 +1,7 @@
 #include "member_func_list.h"
 #include "class_table.h"
 
-class_method_t* create_class_method_entry(char* name, type_table_t* return_type, decl_node_t* params, ast_node_t* func_body, decl_node_t* local_decls, label_index_t label) {
+class_method_t* create_class_method_entry(class_table_t* class_details, char* name, type_table_t* return_type, decl_node_t* params, ast_node_t* func_body, decl_node_t* local_decls, label_index_t label) {
     class_method_t* entry = (class_method_t*) malloc(sizeof(class_method_t));
 
     entry->name = strdup(name);
@@ -10,6 +10,7 @@ class_method_t* create_class_method_entry(char* name, type_table_t* return_type,
     entry->func_body = func_body;
     entry->label = label;
     entry->params = params;
+    entry->class = class_details;
     entry->next = NULL;
 
     return entry;

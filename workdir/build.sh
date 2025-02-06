@@ -5,6 +5,7 @@ lex -d lex.l
 
 gcc -g \
     src/code_generation/code_generation.c \
+    src/activation_record/activation_record.c \
     src/instr_set/instr_set.c \
     src/label_translation/label_translation.c \
     src/node/class_decl_node.c \

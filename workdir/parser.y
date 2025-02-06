@@ -125,22 +125,6 @@ class_method    : ret_type ID '(' func_params_list ')' '{' local_decl_block func
                 | ret_type ID '(' ')' '{' local_decl_block func_body '}'                        { $<class_decl_node>$ = create_class_decl_method_node($<s_val>2, return_type_entry, NULL, $<node>7, $<decl_node>6); }
                 | ret_type ID '(' ')' '{' func_body '}'                                         { $<class_decl_node>$ = create_class_decl_method_node($<s_val>2, return_type_entry, NULL, $<node>6, NULL); }
                 ; 
-   
-
-
-/*
-func_def_block  : func_def_block func_def       { $<node>$ = create_program_node($<node>1, $<node>2); }
-                | func_def                      { $<node>$ = $<node>1; }
-                ;
-
-
-func_def    : ret_type ID '(' func_params_list ')' '{' local_decl_block func_body '}'       { $<node>$ = create_func_body_node($<s_val>2, return_type_entry, $<decl_node>4, $<decl_node>7, $<node>8); }
-            | ret_type ID '(' func_params_list ')' '{' func_body '}'                        { $<node>$ = create_func_body_node($<s_val>2, return_type_entry, $<decl_node>4, NULL, $<node>7); }
-            | ret_type ID '(' ')' '{' local_decl_block func_body '}'                        { $<node>$ = create_func_body_node($<s_val>2, return_type_entry, NULL, $<decl_node>6, $<node>7); }
-            | ret_type ID '(' ')' '{' func_body '}'                                         { $<node>$ = create_func_body_node($<s_val>2, return_type_entry, NULL, NULL, $<node>6); }
-            ; 
-
-*/
 
 
 type_decl_list  : type_decl_list type_decl
