@@ -87,6 +87,7 @@ type_table_t* create_class_type_entry(class_table_t* details) {
     entry->next = NULL;
     entry->size = 0;
     entry->type = VAR_TYPE_CLASS;
+    entry->class_details = details;
 
     if (type_table == NULL) {
         type_table = entry;
@@ -194,6 +195,10 @@ bool is_user_defined_type(type_table_t* type) {
 
 bool is_tuple(type_table_t* type) {
     return (type->type == VAR_TYPE_TUPLE);
+}
+
+bool is_class(type_table_t* type) {
+    return (type->type == VAR_TYPE_CLASS);
 }
 
 

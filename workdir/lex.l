@@ -88,7 +88,8 @@ OR { return OR; }
 
 null { return NULLPTR; }
 
-self { return SELF; }
+new { return NEW; }
+
 
 ">" { return GT; }
 ">=" { return GTE; }

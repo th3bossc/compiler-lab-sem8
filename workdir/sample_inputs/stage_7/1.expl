@@ -3,13 +3,20 @@ class
         decl 
             int hi;
             str hii;
-            int hello();
+            int hello(int i);
             Person test;
         enddecl
 
-        int hello() {
+        int hello(int i) {
             begin
-                write("hi");
+                read(self.hi);
+                if (i == 0) then
+                    return 0;
+                endif;
+
+                self.test = alloc();
+
+                self.test.hello(i-1);
 
                 return 0;
             end
@@ -17,9 +24,16 @@ class
     }
 endclass
 
+decl 
+    Person a;
+enddecl
+
 int main() {
     begin 
-        write("hello");
+        initialize();
+
+        a = alloc();
+        a.hello(10);
 
         return 0;
     end

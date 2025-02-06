@@ -1,9 +1,5 @@
 #include "ast_node.h"
 
-// int evaluate_expression(ast_node_t* node, int* vars);
-// int evaluate_bool_expression(ast_node_t* node, int* vars);
-// int evaluate_int_expression(ast_node_t* node, int* vars);
-
 ast_node_t* create_node(node_value_t data, type_table_t* value_type, node_type_t node_type, ast_node_t* left, ast_node_t* right, ast_node_t* middle) {
     ast_node_t* node = (ast_node_t*) malloc(sizeof(ast_node_t));
     node->data = data;
@@ -259,19 +255,19 @@ ast_node_t* create_continue_node() {
     return node;
 }
 
-ast_node_t* create_self_field_node(char* field_name) {
+ast_node_t* create_class_method_node(ast_node_t* class_node, ast_node_t* func_node) {
     node_value_t data;
-    ast_node_t* id_node = create_id_node(field_name);
-    ast_node_t* node = create_node(data, default_types->unset_type, NODE_TYPE_SELF_FIELD, NULL, NULL, id_node);
+    ast_node_t* node = create_node(data, default_types->unset_type, NODE_TYPE_CLASS_METHOD, class_node, func_node, NULL);
     return node;
 }
 
-ast_node_t* create_self_method_node(char* method_name, args_node_t* args_list) {
+ast_node_t* create_constructor_node(char* class_name) {
     node_value_t data;
-    ast_node_t* func_node = create_func_call_node(method_name, args_list);
-    ast_node_t* node = create_node(data, default_types->unset_type, NODE_TYPE_SELF_METHOD, NULL, NULL, func_node);
-    return node;
+    data.s_val = strdup(class_name);
+    ast_node_t* node = create_node(data, default_types->unset_type, NODE_TYPE_CONSTRUCTOR, NULL, NULL, NULL);
 }
+
+
 
 void destroy_node(ast_node_t* node) {
     if (node->left)

@@ -36,6 +36,7 @@ class_table_t* create_class_table_entry(char* name, class_decl_node_t* decl_list
             }
             else {
                 field_tail->next = field;
+                field_tail = field;
             }
             entry->num_fields++;
         }
@@ -43,10 +44,6 @@ class_table_t* create_class_table_entry(char* name, class_decl_node_t* decl_list
             type_table_t* return_type = get_type_table_entry(node->undeclared_type);
             if (return_type == NULL) {
                 yyerror("{class_table:create_class_table_entry} Field type doesn't exist");
-                exit(1);
-            }
-            if (!is_primitive_type(return_type)) {
-                yyerror("{class_table:create_class_table_entry} Functions and class methods are only allowed to have primitive types as return types");
                 exit(1);
             }
             class_method_t* method = create_class_method_entry(entry, node->name, return_type, node->params, NULL, NULL, get_label());
@@ -57,12 +54,11 @@ class_table_t* create_class_table_entry(char* name, class_decl_node_t* decl_list
             }
             else {
                 method_tail->next = method;
+                method_tail = method;
             }
             entry->num_methods++;
         }
     }
-
-
 
     for (class_decl_node_t* node = method_list; node != NULL; node = node->next) {
         class_method_t* target_method = class_method_lookup(entry, node->name);

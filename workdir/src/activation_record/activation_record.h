@@ -5,12 +5,12 @@
 #include "../symbol_table/global_symbol_table.h"
 #include "../class_table/class_table.h"
 
-typedef enum activation_record_type_s activation_record_type_t;
-typedef struct activation_record_s activation_record_t;
+typedef enum function_type_s function_type_t;
+typedef struct function_metadata_s function_metadata_t;
 typedef union function_details_s function_details_t;
 typedef struct class_stack_s class_stack_t;
 
-enum activation_record_type_s {
+enum function_type_s {
     ACT_REC_TYPE_FUNCTION,
     ACT_REC_TYPE_CLASS_METHOD,
 };
@@ -20,14 +20,12 @@ union function_details_s {
     class_method_t* method_entry;
 };
 
-struct activation_record_s {
-    activation_record_type_t type;
+struct function_metadata_s {
+    function_type_t type;
     function_details_t entry;
 
     local_symbol_table_t* l_symbol_table;
     int* num_used_regs;
-
-    activation_record_t* next;
 };
 
 struct class_stack_s {
@@ -37,13 +35,9 @@ struct class_stack_s {
 
 
 
-void activation_stack_push_func_entry(global_symbol_table_t* func_entry, local_symbol_table_t* l_symbol_table, int* num_used_regs);
-void activation_stack_push_method_entry(class_method_t* method_entry, local_symbol_table_t* l_symbol_table, int* num_used_regs);
-void activation_stack_pop();
-activation_record_t* activation_stack_top();
-
-void activation_stack_initialize();
-void activation_stack_destroy(activation_record_t* stack);
+void function_metadata_update_func(global_symbol_table_t* func_entry, local_symbol_table_t* l_symbol_table, int* num_used_regs);
+void function_metadata_update_member_method(class_method_t* method_entry, local_symbol_table_t* l_symbol_table, int* num_used_regs);
+function_metadata_t* function_metdata_current();
 
 
 void class_stack_push(global_symbol_table_t* class_var);

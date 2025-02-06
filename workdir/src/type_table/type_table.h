@@ -74,6 +74,7 @@ field_list_t* get_field_entry(type_table_t* struct_name, int field_index);
 bool is_primitive_type(type_table_t* type);
 bool is_user_defined_type(type_table_t* type);
 bool is_tuple(type_table_t* type);
+bool is_class(type_table_t* type);
 
 void initialize_type_table();
 

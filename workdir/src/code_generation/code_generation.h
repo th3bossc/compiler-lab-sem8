@@ -28,15 +28,16 @@ reg_index_t generate_tuple_index_code(ast_node_t* node);
 reg_index_t generate_init_heap_code();
 reg_index_t generate_alloc_code();
 reg_index_t generate_free_heap_code(ast_node_t* node);
-reg_index_t generate_self_field_code(ast_node_t* node);
-reg_index_t generate_self_method_code(ast_node_t* node);
-
+// reg_index_t generate_self_field_code(ast_node_t* node);
+// reg_index_t generate_self_method_code(ast_node_t* node);
+reg_index_t generate_class_method_call_code(ast_node_t* node);
+reg_index_t generate_class_constructor_code(ast_node_t* node);
 
 void generate_assignment_code(ast_node_t* node);
 void generate_arr_assignment_code(ast_node_t* node);
 void generate_ptr_assignment_code(ast_node_t* node);
 void generate_tuple_field_assignment_code(ast_node_t* node);
-
+// void generate_self_field_assignment_code(ast_node_t* node);
 
 reg_index_t generate_print_code(ast_node_t* node);
 reg_index_t generate_read_code(ast_node_t* node);
