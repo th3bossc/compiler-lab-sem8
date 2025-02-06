@@ -17,12 +17,18 @@ class_table_t* create_class_table_entry(char* name, class_decl_node_t* decl_list
     entry->num_methods = 0;
     entry->next = NULL;
     append_to_class_table(entry);
+    create_class_type_entry(entry);
 
     class_field_t* field_tail = NULL;
     class_method_t* method_tail = NULL;
     for (class_decl_node_t* node = decl_list; node != NULL; node = node->next) {
         if (node->node_type == CLASS_DECL_NODE_TYPE_FIELD) {
-            class_field_t* field = create_class_field_entry(node->name, node->type, entry->num_fields);
+            type_table_t* field_type = get_type_table_entry(node->undeclared_type);
+            if (field_type == NULL) {
+                yyerror("{class_table:create_class_table_entry} Field type doesn't exist");
+                exit(1);
+            }
+            class_field_t* field = create_class_field_entry(node->name, field_type, entry->num_fields);
 
             if (field_tail == NULL) {
                 field_tail = field;
@@ -34,7 +40,16 @@ class_table_t* create_class_table_entry(char* name, class_decl_node_t* decl_list
             entry->num_fields++;
         }
         else {
-            class_method_t* method = create_class_method_entry(entry, node->name, node->type, node->params, NULL, NULL, get_label());
+            type_table_t* return_type = get_type_table_entry(node->undeclared_type);
+            if (return_type == NULL) {
+                yyerror("{class_table:create_class_table_entry} Field type doesn't exist");
+                exit(1);
+            }
+            if (!is_primitive_type(return_type)) {
+                yyerror("{class_table:create_class_table_entry} Functions and class methods are only allowed to have primitive types as return types");
+                exit(1);
+            }
+            class_method_t* method = create_class_method_entry(entry, node->name, return_type, node->params, NULL, NULL, get_label());
 
             if (method_tail == NULL) {
                 method_tail = method;
@@ -56,7 +71,12 @@ class_table_t* create_class_table_entry(char* name, class_decl_node_t* decl_list
             exit(1);
         }
 
-        if (node->type != target_method->return_type) {
+        type_table_t* return_type = get_type_table_entry(node->undeclared_type);
+            if (return_type == NULL) {
+                yyerror("{class_table:create_class_table_entry} Field type doesn't exist");
+                exit(1);
+            }
+        if (return_type != target_method->return_type) {
             yyerror("{class_table:create_class_table_entry} Return type of method doesn't match the declaration");
             exit(1);
         }

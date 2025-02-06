@@ -18,7 +18,7 @@ enum class_decl_node_type_s {
 struct class_decl_node_s {
     class_decl_node_type_t node_type;
     char* name;
-    type_table_t* type;
+    char* undeclared_type;
     int label;
     decl_node_t* params;
     ast_node_t* func_body;
@@ -27,8 +27,8 @@ struct class_decl_node_s {
 };
 
 
-class_decl_node_t* create_class_decl_field_node(char* name, type_table_t* type);
-class_decl_node_t* create_class_decl_method_node(char* name, type_table_t* return_type, decl_node_t* params, ast_node_t* func_body, decl_node_t* local_decls);
+class_decl_node_t* create_class_decl_field_node(char* name, char* type);
+class_decl_node_t* create_class_decl_method_node(char* name, char* return_type, decl_node_t* params, ast_node_t* func_body, decl_node_t* local_decls);
 void destroy_class_decl_node(class_decl_node_t* node);
 class_decl_node_t* join_class_decl_nodes(class_decl_node_t* node1, class_decl_node_t* node2);
 

@@ -87,6 +87,19 @@ type_table_t* create_class_type_entry(class_table_t* details) {
     entry->next = NULL;
     entry->size = 0;
     entry->type = VAR_TYPE_CLASS;
+
+    if (type_table == NULL) {
+        type_table = entry;
+    }
+    else {
+        type_table_t* tail = type_table;
+        while(tail->next != NULL)
+            tail = tail->next;
+        tail->next = entry;
+
+    }
+
+    return entry;
 }
 
 

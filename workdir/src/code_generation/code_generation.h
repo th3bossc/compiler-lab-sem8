@@ -28,6 +28,8 @@ reg_index_t generate_tuple_index_code(ast_node_t* node);
 reg_index_t generate_init_heap_code();
 reg_index_t generate_alloc_code();
 reg_index_t generate_free_heap_code(ast_node_t* node);
+reg_index_t generate_self_field_code(ast_node_t* node);
+reg_index_t generate_self_method_code(ast_node_t* node);
 
 
 void generate_assignment_code(ast_node_t* node);
@@ -56,7 +58,7 @@ reg_index_t alloc_memory(int size);
 reg_index_t free_memory(reg_index_t location);
 
 
-void exit_program();
+void exit_program(int* free_registers);
 void generate_headers();
 
 void generate_program(ast_node_t* body);

@@ -259,10 +259,17 @@ ast_node_t* create_continue_node() {
     return node;
 }
 
-
-ast_node_t* create_self_node() {
+ast_node_t* create_self_field_node(char* field_name) {
     node_value_t data;
-    ast_node_t* node = create_node(data, default_types->unset_type, NODE_TYPE_SELF, NULL, NULL, NULL);
+    ast_node_t* id_node = create_id_node(field_name);
+    ast_node_t* node = create_node(data, default_types->unset_type, NODE_TYPE_SELF_FIELD, NULL, NULL, id_node);
+    return node;
+}
+
+ast_node_t* create_self_method_node(char* method_name, args_node_t* args_list) {
+    node_value_t data;
+    ast_node_t* func_node = create_func_call_node(method_name, args_list);
+    ast_node_t* node = create_node(data, default_types->unset_type, NODE_TYPE_SELF_METHOD, NULL, NULL, func_node);
     return node;
 }
 

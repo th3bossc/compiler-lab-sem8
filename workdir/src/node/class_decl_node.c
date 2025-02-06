@@ -1,11 +1,12 @@
 #include "class_decl_node.h"
 
-class_decl_node_t* create_class_decl_field_node(char* name, type_table_t* type) {
+class_decl_node_t* create_class_decl_field_node(char* name, char* type) {
     class_decl_node_t* entry = (class_decl_node_t*) malloc(sizeof(class_decl_node_t));
 
     entry->node_type = CLASS_DECL_NODE_TYPE_FIELD;
     entry->name = strdup(name);
-    entry->type = type;
+    // entry->type = type;
+    entry->undeclared_type = strdup(type);
     entry->func_body = NULL;
     entry->label = -1;
     entry->params = NULL;
@@ -15,12 +16,12 @@ class_decl_node_t* create_class_decl_field_node(char* name, type_table_t* type) 
     return entry;
 }
 
-class_decl_node_t* create_class_decl_method_node(char* name, type_table_t* return_type, decl_node_t* params, ast_node_t* func_body, decl_node_t* local_decls) {
+class_decl_node_t* create_class_decl_method_node(char* name, char* return_type, decl_node_t* params, ast_node_t* func_body, decl_node_t* local_decls) {
     class_decl_node_t* entry = (class_decl_node_t*) malloc(sizeof(class_decl_node_t));
 
     entry->node_type = CLASS_DECL_NODE_TYPE_METHOD;
     entry->name = strdup(name);
-    entry->type = return_type;
+    entry->undeclared_type = return_type;
     entry->func_body = func_body;
     entry->label = get_label();
     entry->params = params;

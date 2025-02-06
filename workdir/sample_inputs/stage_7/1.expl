@@ -4,6 +4,7 @@ class
             int hi;
             str hii;
             int hello();
+            Person test;
         enddecl
 
         int hello() {

@@ -105,25 +105,27 @@ class_fields    : class_fields class_field      { $<class_decl_node>$ = join_cla
                 | class_field                   { $<class_decl_node>$ = $<class_decl_node>1; }
                 ;
 
-class_field : class_field_type ID SEMICOLON                             { $<class_decl_node>$ = create_class_decl_field_node($<s_val>2, class_field_type_entry); }
-            | class_field_type ID '(' func_params_list ')' SEMICOLON    { $<class_decl_node>$ = create_class_decl_method_node($<s_val>2, class_field_type_entry, $<decl_node>4, NULL, NULL); }
-            | class_field_type ID '(' ')' SEMICOLON                     { $<class_decl_node>$ = create_class_decl_method_node($<s_val>2, class_field_type_entry, NULL, NULL, NULL); }
+class_field : class_field_type ID SEMICOLON                             { $<class_decl_node>$ = create_class_decl_field_node($<s_val>2, $<s_val>1); }
+            | class_field_type ID '(' func_params_list ')' SEMICOLON    { $<class_decl_node>$ = create_class_decl_method_node($<s_val>2, $<s_val>1, $<decl_node>4, NULL, NULL); }
+            | class_field_type ID '(' ')' SEMICOLON                     { $<class_decl_node>$ = create_class_decl_method_node($<s_val>2, $<s_val>1, NULL, NULL, NULL); }
             ;
 
-class_field_type    : INT   { class_field_type_entry = default_types->int_type; }
-                    | STR   { class_field_type_entry = default_types->str_type; }
 
+class_field_type    : INT       { $<s_val>$ = $<s_val>1; }
+                    | STR       { $<s_val>$ = $<s_val>1; }
+                    | ID        { $<s_val>$ = $<s_val>1; }
                     ;
+
 
 class_method_list   : class_method_list class_method    { $<class_decl_node>$ = join_class_decl_nodes($<class_decl_node>1, $<class_decl_node>2); }
                     | class_method                      { $<class_decl_node>$ = $<class_decl_node>1; }
                     ;
 
 
-class_method    : ret_type ID '(' func_params_list ')' '{' local_decl_block func_body '}'       { $<class_decl_node>$ = create_class_decl_method_node($<s_val>2, return_type_entry, $<decl_node>4, $<node>8, $<decl_node>7); }
-                | ret_type ID '(' func_params_list ')' '{' func_body '}'                        { $<class_decl_node>$ = create_class_decl_method_node($<s_val>2, return_type_entry, $<decl_node>4, $<node>7, NULL); }
-                | ret_type ID '(' ')' '{' local_decl_block func_body '}'                        { $<class_decl_node>$ = create_class_decl_method_node($<s_val>2, return_type_entry, NULL, $<node>7, $<decl_node>6); }
-                | ret_type ID '(' ')' '{' func_body '}'                                         { $<class_decl_node>$ = create_class_decl_method_node($<s_val>2, return_type_entry, NULL, $<node>6, NULL); }
+class_method    : class_field_type ID '(' func_params_list ')' '{' local_decl_block func_body '}'       { $<class_decl_node>$ = create_class_decl_method_node($<s_val>2, $<s_val>1, $<decl_node>4, $<node>8, $<decl_node>7); }
+                | class_field_type ID '(' func_params_list ')' '{' func_body '}'                        { $<class_decl_node>$ = create_class_decl_method_node($<s_val>2, $<s_val>1, $<decl_node>4, $<node>7, NULL); }
+                | class_field_type ID '(' ')' '{' local_decl_block func_body '}'                        { $<class_decl_node>$ = create_class_decl_method_node($<s_val>2, $<s_val>1, NULL, $<node>7, $<decl_node>6); }
+                | class_field_type ID '(' ')' '{' func_body '}'                                         { $<class_decl_node>$ = create_class_decl_method_node($<s_val>2, $<s_val>1, NULL, $<node>6, NULL); }
                 ; 
 
 
@@ -339,7 +341,9 @@ expr        : expr '+' expr                     { $<node>$ = create_operator_nod
             | stmt_init_heap                    { $<node>$ = $<node>1; }
             | stmt_free                         { $<node>$ = $<node>1; }    
             | NULLPTR                           { $<node>$ = create_num_node(0); }  
-            | SELF                              { $<node>$ = create_self_node(); }
+            // | SELF PERIOD ID                    { $<node>$ = create_self_field_node($<s_val>3); }
+            // | SELF PERIOD ID '(' ')'            { $<node>$ = create_self_method_node($<s_val>3, NULL); }
+            // | SELF PERIOD ID '(' args_list ')'  { $<node>$ = create_self_method_node($<s_val>3, $<args_node>5); }
             ;
 
 args_list   : args_list COMMA expr              { $<args_node>$ = join_args_nodes($<args_node>1, create_args_node($<node>3)); }

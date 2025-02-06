@@ -1,6 +1,7 @@
 #include "activation_record.h"
 
 activation_record_t* activation_stack;
+class_stack_t* class_stack;
 
 void activation_stack_initialize() {
     activation_stack = NULL;
@@ -48,5 +49,37 @@ activation_record_t* activation_stack_top() {
     return activation_stack;
 }
 
+
+
+void class_stack_initialize() {
+    class_stack = NULL;
+}
+
+void class_stack_destroy(class_stack_t* stack) {
+    if (stack == NULL)
+        return;
+
+    class_stack_destroy(stack->next);
+    free(stack);
+}
+
+void class_stack_push(global_symbol_table_t* class_var) {
+    class_stack_t* entry = (class_stack_t*) malloc(sizeof(class_stack_t));
+
+    entry->class_var = class_var;
+    entry->next = class_stack;
+    class_stack = entry;
+}
+
+void class_stack_pop() {
+    if (class_stack == NULL)
+        return;
+
+    class_stack = class_stack->next;
+}
+
+class_stack_t* class_stack_top() {
+    return class_stack;
+}
 
 

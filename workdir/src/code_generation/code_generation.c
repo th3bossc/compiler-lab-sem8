@@ -58,8 +58,6 @@ reg_index_t load_var_addr_to_reg(char* name, reg_index_t offset_reg) {
             exit(1);
         }
         else {
-            // MOV R1, addr
-            // ADD R1, r2
             reg_index_t free_reg = get_free_register(record->num_used_regs);
             int addr = global_entry->binding;
             immediate_addressing_int(free_reg, addr);
@@ -71,12 +69,27 @@ reg_index_t load_var_addr_to_reg(char* name, reg_index_t offset_reg) {
     else {
         reg_index_t free_reg = get_free_register(record->num_used_regs);
         int relative_addr = local_entry->binding;
-        // MOV R1, BP
-        // ADD R1, relative_addr
         fprintf(instr_set_fp, "MOV R%d, BP\n", free_reg);
         add_immediate(free_reg, relative_addr);
         return free_reg;
     }
+}
+
+reg_index_t load_class_addr_to_reg(global_symbol_table_t* global_entry, reg_index_t offset_reg) {
+    activation_record_t* record = activation_stack_top();
+    if (global_entry == NULL) {
+        yyerror("{code_generation:load_class_addr_to_reg} Variable not declared");
+        exit(1);
+    }
+    else {
+        reg_index_t free_reg = get_free_register(record->num_used_regs);
+        int addr = global_entry->binding;
+        immediate_addressing_int(free_reg, addr);
+        if (offset_reg != -1)
+            add_registers(free_reg, offset_reg);
+        return free_reg;
+    }
+
 }
 
 reg_index_t generate_id_expr_code(ast_node_t* node) {
@@ -133,6 +146,12 @@ reg_index_t generate_expression_code(ast_node_t* node) {
     }
     else if (node->node_type == NODE_TYPE_FREE) {
         return generate_free_heap_code(node);
+    }
+    else if (node->node_type == NODE_TYPE_SELF_FIELD) {
+        return generate_self_field_code(node);
+    }
+    else if (node->node_type == NODE_TYPE_SELF_METHOD) {
+        return generate_self_method_code(node);
     }
 
     if (node->value_type == default_types->int_type || node->value_type == default_types->ptr_type) {
@@ -520,6 +539,40 @@ reg_index_t generate_free_heap_code(ast_node_t* node) {
     free_used_register(record->num_used_regs, addr_reg);
 
     return ret_val;
+}
+
+
+reg_index_t generate_self_field_code(ast_node_t* node) {
+    activation_record_t* record = activation_stack_top();
+    class_stack_t* current_object = class_stack_top();
+    if (!node || !node->middle || current_object == NULL) {
+        yyerror("{code_generation:generate_self_field_code} Something went wrong");
+        exit(1);
+    }
+
+    if (record == NULL || (record->type != ACT_REC_TYPE_CLASS_METHOD)) {
+        yyerror("{code_generation:generate_self_field_code} 'self' object can only be used within an instance of a class");
+        exit(1);
+    }
+
+
+    ast_node_t* id_node = node->middle;
+    class_table_t* class_details = current_object->class_var->type->class_details;
+
+    class_field_t* field_details = class_field_lookup(class_details, id_node->data.s_val);
+    if (field_details == NULL) {
+        yyerror("{code_generation:generate_self_field_code} Field doesn't exit on class");
+        exit(1);
+    }
+    reg_index_t offset_reg = get_free_register(record->num_used_regs);
+    immediate_addressing_int(offset_reg, field_details->field_index);
+    reg_index_t addr_reg = load_class_addr_to_reg(current_object->class_var, offset_reg);
+    return addr_reg;
+}
+
+
+reg_index_t generate_self_method_code(ast_node_t* node) {
+    
 }
 
 
@@ -1344,6 +1397,8 @@ void generate_headers() {
 
 
 void generate_program(ast_node_t* body) {
+    class_stack_initialize();
+    activation_stack_initialize();
     generate_headers();
     add_breakpoint();
     int free_address = get_binding(0);
@@ -1366,4 +1421,7 @@ void generate_program(ast_node_t* body) {
 
     generate_program_structure(body);
     generate_class_code();
+
+    class_stack_destroy(class_stack_top());
+    activation_stack_destroy(activation_stack_top());
 }
