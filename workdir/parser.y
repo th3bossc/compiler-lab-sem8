@@ -17,10 +17,9 @@
 extern FILE *yyin;
 void yyerror(const char*);
 int yylex();
-void generate_code(ast_node_t*, FILE*);
 FILE* output_path = NULL;
 bool evaluate_mode = false;
-void parser_complete_handler(ast_node_t*, FILE*);
+void parser_complete_handler(ast_node_t*);
 
 type_table_t* var_type_entry;
 type_table_t* arg_type_entry;
@@ -76,7 +75,7 @@ int num_fields;
 %%
 
 
-program     : type_decl_block class_decl_block global_decl_block func_def_block  { printf("Parse complete [p1]\n"); print_prefix($<node>3); printf("\nGlobal Symbol Table: "); print_symbol_table(); parser_complete_handler($<node>3, output_path); }
+program     : type_decl_block class_decl_block global_decl_block func_def_block  { printf("Parse complete [p1]\n"); print_prefix($<node>4); printf("\nGlobal Symbol Table: "); print_symbol_table(); parser_complete_handler($<node>4); }
             ;
 
 type_decl_block : BEGIN_TYPE type_decl_list END_TYPE
@@ -342,12 +341,12 @@ void yyerror(const char* s) {
     fprintf(stderr, "\nError: %s\n", s);
 } 
 
-void parser_complete_handler(ast_node_t* node, FILE* fp) {
+void parser_complete_handler(ast_node_t* node) {
     if (evaluate_mode) {
         // evaluation only implemented till stage 3
     }
     else {
-        generate_program(node, fp);
+        generate_program(node);
     }
 }
 
@@ -369,6 +368,7 @@ int main(int argc, char* argv[]) {
             FILE* fp = fopen(argv[i+1], "w");
             if (fp) {
                 output_path = fp;
+                instr_set_fp = fp;
                 printf("output: %p\n", fp);
             }
         }

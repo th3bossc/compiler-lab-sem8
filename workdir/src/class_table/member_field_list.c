@@ -1,11 +1,12 @@
 #include "member_field_list.h"
 #include "class_table.h"
 
-class_field_t* create_class_field_entry(char* name, type_table_t* type) {
+class_field_t* create_class_field_entry(char* name, type_table_t* type, int field_index) {
     class_field_t* entry = (class_field_t*) malloc(sizeof(class_field_t));
     entry->name = strdup(name);
     entry->type = type;
     entry->next = NULL;
+    entry->field_index = field_index;
     
     return entry;
 }

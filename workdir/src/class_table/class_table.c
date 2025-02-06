@@ -22,7 +22,7 @@ class_table_t* create_class_table_entry(char* name, class_decl_node_t* decl_list
     class_method_t* method_tail = NULL;
     for (class_decl_node_t* node = decl_list; node != NULL; node = node->next) {
         if (node->node_type == CLASS_DECL_NODE_TYPE_FIELD) {
-            class_field_t* field = create_class_field_entry(node->name, node->type);
+            class_field_t* field = create_class_field_entry(node->name, node->type, entry->num_fields);
 
             if (field_tail == NULL) {
                 field_tail = field;
@@ -62,7 +62,7 @@ class_table_t* create_class_table_entry(char* name, class_decl_node_t* decl_list
         }
 
         if (!verify_params_list(node->params, target_method->params)) {
-            yyerror("{class_table:create_class_table_entry} Method parameters doesn't match the declaration");
+            yyerror("{class_table:create_class_table_entry} Method parameters don't match the declaration");
             exit(1);
         }
 

@@ -20,7 +20,7 @@ struct class_field_s {
 };
 
 
-class_field_t* create_class_field_entry(char* name, type_table_t* type);
+class_field_t* create_class_field_entry(char* name, type_table_t* type, int field_index);
 void destroy_class_field_entry(class_field_t* entry);
 class_field_t* class_field_lookup(class_table_t* class_name, char* field_name);
 
