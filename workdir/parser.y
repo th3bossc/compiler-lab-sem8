@@ -49,6 +49,7 @@ int num_fields;
 %token RETURN
 %token TUPLE
 %token NULLPTR
+%token SELF
 
 %left OR
 %left AND
@@ -104,8 +105,9 @@ class_fields    : class_fields class_field      { $<class_decl_node>$ = join_cla
                 | class_field                   { $<class_decl_node>$ = $<class_decl_node>1; }
                 ;
 
-class_field : class_field_type ID SEMICOLON                 { $<class_decl_node>$ = create_class_decl_field_node($<s_val>2, class_field_type_entry); }
-            | class_field_type ID '(' func_params_list ')'  { $<class_decl_node>$ = create_class_decl_method_node($<s_val>2, class_field_type_entry, $<decl_node>4, NULL, NULL); }
+class_field : class_field_type ID SEMICOLON                             { $<class_decl_node>$ = create_class_decl_field_node($<s_val>2, class_field_type_entry); }
+            | class_field_type ID '(' func_params_list ')' SEMICOLON    { $<class_decl_node>$ = create_class_decl_method_node($<s_val>2, class_field_type_entry, $<decl_node>4, NULL, NULL); }
+            | class_field_type ID '(' ')' SEMICOLON                     { $<class_decl_node>$ = create_class_decl_method_node($<s_val>2, class_field_type_entry, NULL, NULL, NULL); }
             ;
 
 class_field_type    : INT   { class_field_type_entry = default_types->int_type; }
@@ -113,8 +115,32 @@ class_field_type    : INT   { class_field_type_entry = default_types->int_type; 
 
                     ;
 
-class_method_list   : func_def_block    { $<node>$ = $<node>1; }
+class_method_list   : class_method_list class_method    { $<class_decl_node>$ = join_class_decl_nodes($<class_decl_node>1, $<class_decl_node>2); }
+                    | class_method                      { $<class_decl_node>$ = $<class_decl_node>1; }
                     ;
+
+
+class_method    : ret_type ID '(' func_params_list ')' '{' local_decl_block func_body '}'       { $<class_decl_node>$ = create_class_decl_method_node($<s_val>2, return_type_entry, $<decl_node>4, $<node>8, $<decl_node>7); }
+                | ret_type ID '(' func_params_list ')' '{' func_body '}'                        { $<class_decl_node>$ = create_class_decl_method_node($<s_val>2, return_type_entry, $<decl_node>4, $<node>7, NULL); }
+                | ret_type ID '(' ')' '{' local_decl_block func_body '}'                        { $<class_decl_node>$ = create_class_decl_method_node($<s_val>2, return_type_entry, NULL, $<node>7, $<decl_node>6); }
+                | ret_type ID '(' ')' '{' func_body '}'                                         { $<class_decl_node>$ = create_class_decl_method_node($<s_val>2, return_type_entry, NULL, $<node>6, NULL); }
+                ; 
+   
+
+
+/*
+func_def_block  : func_def_block func_def       { $<node>$ = create_program_node($<node>1, $<node>2); }
+                | func_def                      { $<node>$ = $<node>1; }
+                ;
+
+
+func_def    : ret_type ID '(' func_params_list ')' '{' local_decl_block func_body '}'       { $<node>$ = create_func_body_node($<s_val>2, return_type_entry, $<decl_node>4, $<decl_node>7, $<node>8); }
+            | ret_type ID '(' func_params_list ')' '{' func_body '}'                        { $<node>$ = create_func_body_node($<s_val>2, return_type_entry, $<decl_node>4, NULL, $<node>7); }
+            | ret_type ID '(' ')' '{' local_decl_block func_body '}'                        { $<node>$ = create_func_body_node($<s_val>2, return_type_entry, NULL, $<decl_node>6, $<node>7); }
+            | ret_type ID '(' ')' '{' func_body '}'                                         { $<node>$ = create_func_body_node($<s_val>2, return_type_entry, NULL, NULL, $<node>6); }
+            ; 
+
+*/
 
 
 type_decl_list  : type_decl_list type_decl
@@ -329,6 +355,7 @@ expr        : expr '+' expr                     { $<node>$ = create_operator_nod
             | stmt_init_heap                    { $<node>$ = $<node>1; }
             | stmt_free                         { $<node>$ = $<node>1; }    
             | NULLPTR                           { $<node>$ = create_num_node(0); }  
+            | SELF                              { $<node>$ = create_self_node(); }
             ;
 
 args_list   : args_list COMMA expr              { $<args_node>$ = join_args_nodes($<args_node>1, create_args_node($<node>3)); }

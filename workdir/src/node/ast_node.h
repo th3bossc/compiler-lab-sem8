@@ -45,6 +45,7 @@ enum node_type_s {
     NODE_TYPE_FUNC_DECL,
     NODE_TYPE_PROGRAM,
     NODE_TYPE_FUNC_RET,
+    NODE_TYPE_SELF,
 };
 
 
@@ -99,6 +100,7 @@ ast_node_t* create_func_body_node(char* func_name, type_table_t* return_type, de
 ast_node_t* create_func_return_node(ast_node_t* expr);
 ast_node_t* create_break_node();
 ast_node_t* create_continue_node();
+ast_node_t* create_self_node();
 
 void destroy_node(ast_node_t* node);
 // void evaluate_node(ast_node_t* node);

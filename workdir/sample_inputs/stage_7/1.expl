@@ -1,0 +1,25 @@
+class 
+    Person {
+        decl 
+            int hi;
+            str hii;
+            int hello();
+        enddecl
+
+        int hello() {
+            begin
+                write("hi");
+
+                return 0;
+            end
+        }
+    }
+endclass
+
+int main() {
+    begin 
+        write("hello");
+
+        return 0;
+    end
+}

@@ -6,7 +6,6 @@
 #include <stdbool.h>
 #include "../node/decl_node.h"
 
-
 typedef struct type_table_s type_table_t;
 typedef struct field_list_s field_list_t;
 typedef struct primitive_types_s primitive_types_t;
@@ -18,11 +17,12 @@ enum var_type_s {
     VAR_TYPE_COMPOUND,
     VAR_TYPE_TUPLE,
     VAR_TYPE_CUSTOM,
+    VAR_TYPE_CLASS,
 };
 
 //forward decl for yyerror
 void yyerror(const char*);
-
+typedef struct class_table_s class_table_t;
 struct field_list_s {
     char* name;
     int field_index;
@@ -37,6 +37,7 @@ struct type_table_s {
     field_list_t* fields;
     var_type_t type;
     int num_fields;
+    class_table_t* class_details;
     type_table_t* next;
 };
 
@@ -62,6 +63,7 @@ field_list_t* field_lookup(type_table_t* tuple, char* field_name);
 
 type_table_t* create_type_table_entry(char* name, int size, decl_node_t* fields, var_type_t type);
 type_table_t* create_user_type_entry(char* name, decl_node_t* fields);
+type_table_t* create_class_type_entry(class_table_t* details);
 void destroy_type_table_entry(type_table_t* entry);
 
 

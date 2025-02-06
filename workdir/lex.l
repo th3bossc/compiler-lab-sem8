@@ -88,6 +88,8 @@ OR { return OR; }
 
 null { return NULLPTR; }
 
+self { return SELF; }
+
 ">" { return GT; }
 ">=" { return GTE; }
 "<" { return LT; }

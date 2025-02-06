@@ -1,4 +1,5 @@
 #include "code_generation.h"
+// #include "../class_table/class_table.h"
 
 type_table_t* is_type_compatible(type_table_t* type1, type_table_t* type2) {
     if (is_user_defined_type(type1) && (type2 == default_types->int_type)) 
@@ -759,7 +760,7 @@ reg_index_t generate_read_code(ast_node_t* node, int* num_used_regs, local_symbo
     }
 }
 
-void generate_if_code(ast_node_t* node, int* num_used_regs, label_index_t* break_label, label_index_t* continue_label, local_symbol_table_t* l_symbol_table, global_symbol_table_t* func_entry) {
+void generate_if_code(ast_node_t* node, int* num_used_regs, label_index_t* break_label, label_index_t* continue_label, local_symbol_table_t* l_symbol_table, global_symbol_table_t* func_entry, class_method_t* method_entry) {
     if (!node || !(node->left) || !(node->middle)) {
         yyerror("{code_generation:generate_if_code} Something went wrong");
         exit(1);
@@ -776,14 +777,14 @@ void generate_if_code(ast_node_t* node, int* num_used_regs, label_index_t* break
 
     reg_index_t condition_output = generate_expression_code(cond_node, num_used_regs, l_symbol_table);
     jump_zero_to_label(condition_output, exit_if_label);
-    generate_statement_structure(body_node, num_used_regs, l_symbol_table, break_label, continue_label, func_entry);
+    generate_statement_structure(body_node, num_used_regs, l_symbol_table, break_label, continue_label, func_entry, method_entry);
     add_label(exit_if_label);
     free_used_register(num_used_regs, condition_output);
 
     node->value_type = default_types->void_type;
 }
 
-void generate_ifelse_code(ast_node_t* node, int* num_used_regs, label_index_t* break_label, label_index_t* continue_label, local_symbol_table_t* l_symbol_table, global_symbol_table_t* func_entry) {
+void generate_ifelse_code(ast_node_t* node, int* num_used_regs, label_index_t* break_label, label_index_t* continue_label, local_symbol_table_t* l_symbol_table, global_symbol_table_t* func_entry, class_method_t* method_entry) {
     if (!node || !(node->left) || !(node->right) || !(node->middle)) {
         yyerror("{code_generation:generate_ifelse_code} Something went wrong");
         exit(1);
@@ -802,17 +803,17 @@ void generate_ifelse_code(ast_node_t* node, int* num_used_regs, label_index_t* b
 
     reg_index_t condition_output = generate_expression_code(cond_node, num_used_regs, l_symbol_table);
     jump_zero_to_label(condition_output, else_body_label);
-    generate_statement_structure(if_body_node, num_used_regs, l_symbol_table, break_label, continue_label, func_entry);
+    generate_statement_structure(if_body_node, num_used_regs, l_symbol_table, break_label, continue_label, func_entry, method_entry);
     jump_to_label(exit_if_label);
     add_label(else_body_label);
-    generate_statement_structure(else_body_node, num_used_regs, l_symbol_table, break_label, continue_label, func_entry);
+    generate_statement_structure(else_body_node, num_used_regs, l_symbol_table, break_label, continue_label, func_entry, method_entry);
     add_label(exit_if_label);
     free_used_register(num_used_regs, condition_output);
 
     node->value_type = default_types->void_type;
 }
 
-void generate_while_code(ast_node_t* node, int* num_used_regs, local_symbol_table_t* l_symbol_table, global_symbol_table_t* func_entry) {
+void generate_while_code(ast_node_t* node, int* num_used_regs, local_symbol_table_t* l_symbol_table, global_symbol_table_t* func_entry, class_method_t* method_entry) {
     if (!node || !(node->left) || !(node->right)) {
         yyerror("{code_generation:generate_while_code} Something went wrong");
         exit(1);
@@ -830,7 +831,7 @@ void generate_while_code(ast_node_t* node, int* num_used_regs, local_symbol_tabl
     add_label(condn_label);
     reg_index_t condition_output = generate_expression_code(cond_node, num_used_regs, l_symbol_table);
     jump_zero_to_label(condition_output, exit_while_label);
-    generate_statement_structure(body_node, num_used_regs, l_symbol_table, &exit_while_label, &condn_label, func_entry);
+    generate_statement_structure(body_node, num_used_regs, l_symbol_table, &exit_while_label, &condn_label, func_entry, method_entry);
     jump_to_label(condn_label);
     add_label(exit_while_label);
     free_used_register(num_used_regs, condition_output);
@@ -838,7 +839,7 @@ void generate_while_code(ast_node_t* node, int* num_used_regs, local_symbol_tabl
     node->value_type = default_types->void_type;
 } 
 
-void generate_do_while_code(ast_node_t* node, int* num_used_regs, local_symbol_table_t* l_symbol_table, global_symbol_table_t* func_entry) {
+void generate_do_while_code(ast_node_t* node, int* num_used_regs, local_symbol_table_t* l_symbol_table, global_symbol_table_t* func_entry, class_method_t* method_entry) {
     if (!node || !(node->left) || !(node->right)) {
         yyerror("{code_generation:generate_do_while_code} Something went wrong");
         exit(1);
@@ -856,7 +857,7 @@ void generate_do_while_code(ast_node_t* node, int* num_used_regs, local_symbol_t
     label_index_t condn_label = get_label();
     label_index_t end_do_while_label = get_label();
     add_label(start_label);
-    generate_statement_structure(node->right, num_used_regs, l_symbol_table, &end_do_while_label, &condn_label, func_entry);
+    generate_statement_structure(node->right, num_used_regs, l_symbol_table, &end_do_while_label, &condn_label, func_entry, method_entry);
     add_label(condn_label);
     reg_index_t expr_output = generate_expression_code(node->left, num_used_regs, l_symbol_table);
     jump_not_zero_to_label(expr_output, start_label);
@@ -866,7 +867,7 @@ void generate_do_while_code(ast_node_t* node, int* num_used_regs, local_symbol_t
     node->value_type = default_types->void_type;
 }
 
-void generate_repeat_code(ast_node_t* node, int* num_used_regs, local_symbol_table_t* l_symbol_table, global_symbol_table_t* func_entry) {
+void generate_repeat_code(ast_node_t* node, int* num_used_regs, local_symbol_table_t* l_symbol_table, global_symbol_table_t* func_entry, class_method_t* method_entry) {
     if (!node || !(node->left) || !(node->right)) {
         yyerror("{code_generation:generate_do_while_code} Something went wrong");
         exit(1);
@@ -885,7 +886,7 @@ void generate_repeat_code(ast_node_t* node, int* num_used_regs, local_symbol_tab
     label_index_t end_repeat_label = get_label();
     
     add_label(start_label);
-    generate_statement_structure(node->right, num_used_regs, l_symbol_table, &end_repeat_label, &condn_label, func_entry);
+    generate_statement_structure(node->right, num_used_regs, l_symbol_table, &end_repeat_label, &condn_label, func_entry, method_entry);
     add_label(condn_label);
     reg_index_t expr_output = generate_expression_code(node->left, num_used_regs, l_symbol_table);
     jump_zero_to_label(expr_output, start_label);
@@ -984,20 +985,105 @@ void generate_function_code(ast_node_t* node) {
         fprintf(instr_set_fp, "MOV [R%d], R%d\n", dest_reg, src_reg);
     }
 
-    generate_statement_structure(node->middle, num_used_registers, local_symbol_table, NULL, NULL, func_entry);
+    generate_statement_structure(node->middle, num_used_registers, local_symbol_table, NULL, NULL, func_entry, NULL);
     
     destroy_local_symbol_table(local_symbol_table);
     free(num_used_registers);
 }
 
-void generate_func_return_code(ast_node_t* node, int* num_used_regs, local_symbol_table_t* l_symbol_table, global_symbol_table_t* func_entry) {
-    if (!node) {
+void generate_class_method_code(class_method_t* method) {
+    if (!method || !method->func_body) {
+        yyerror("{code_generation:generate_class_method_code} Method declared but not initialized");
+        exit(1);
+    }
+    label_index_t func_label = method->label;
+
+    decl_node_t* func_params = method->params;
+    decl_node_t* func_local_decls = method->local_decls;
+    local_symbol_table_t* local_symbol_table = NULL;
+
+        int i = 1;
+    for (decl_node_t* entry = func_params; entry != NULL; entry = entry->next) {
+        local_symbol_table_t* new_entry = create_local_symbol_table_entry(
+            entry->name,
+            entry->type,
+            entry->inner_type,
+            i,
+            NULL
+        );
+        local_symbol_table = append_to_local_table(local_symbol_table, new_entry);
+        i++;
+    }
+
+    int num_params = i-1;
+
+    for (decl_node_t* entry = func_local_decls; entry != NULL; entry = entry->next) {
+        local_symbol_table_t* new_entry = create_local_symbol_table_entry(
+            entry->name,
+            entry->type,
+            entry->inner_type,
+            i,
+            NULL
+        );
+
+        local_symbol_table = append_to_local_table(local_symbol_table, new_entry);
+        i++;
+
+
+
+    }
+    add_label(func_label);
+    fprintf(instr_set_fp, "PUSH BP\n");
+    fprintf(instr_set_fp, "MOV BP, SP\n");
+    fprintf(instr_set_fp, "ADD SP, %d\n", i-1);
+
+
+    int* num_used_registers = (int*) calloc(NUM_REGISTERS, sizeof(int));
+    reset_registers(num_used_registers);
+    
+
+    //copy args to local table
+    for (int i = 0; i < num_params; i++) {
+        reg_index_t dest_reg = get_free_register(num_used_registers);
+        reg_index_t src_reg = get_free_register(num_used_registers);
+
+        add_breakpoint();
+        fprintf(instr_set_fp, "MOV R%d, BP\n", src_reg);
+        fprintf(instr_set_fp, "SUB R%d, %d\n", src_reg, (num_params + 2 - i));
+        fprintf(instr_set_fp, "MOV R%d, [R%d]\n", src_reg, src_reg);
+
+        fprintf(instr_set_fp, "MOV R%d, BP\n", dest_reg);
+        fprintf(instr_set_fp, "ADD R%d, %d\n", dest_reg, i+1);
+
+        fprintf(instr_set_fp, "MOV [R%d], R%d\n", dest_reg, src_reg);
+    }
+
+    generate_statement_structure(method->func_body, num_used_registers, local_symbol_table, NULL, NULL, NULL, method);
+    
+    destroy_local_symbol_table(local_symbol_table);
+    free(num_used_registers);
+}
+
+void generate_class_code() {
+    for (class_table_t* class_details = class_table; class_details != NULL; class_details = class_details->next) {
+        for (class_method_t* method = class_details->methods; method != NULL; method = method->next) {
+            generate_class_method_code(method);
+        }
+    }
+}
+
+void generate_func_return_code(ast_node_t* node, int* num_used_regs, local_symbol_table_t* l_symbol_table, global_symbol_table_t* func_entry, class_method_t* method_entry) {
+    if (!node || (func_entry == NULL && method_entry == NULL)) {
         yyerror("{code_generation:generate_func_return_code} Something went wrong");
         exit(1);
     }
 
+    type_table_t* return_type = (func_entry == NULL) 
+        ? method_entry->return_type 
+        : func_entry->inner_type;
+
     if (node->middle == NULL) {
-        if (func_entry->inner_type != default_types->void_type) {
+        if (return_type != default_types->void_type) {
             yyerror("{code_generation:generate_func_return_code} Mismatched return types");
             exit(1);
         }
@@ -1009,7 +1095,7 @@ void generate_func_return_code(ast_node_t* node, int* num_used_regs, local_symbo
     }
     ast_node_t* expr_node = node->middle;
     reg_index_t expr_output_reg = generate_expression_code(expr_node, num_used_regs, l_symbol_table);
-    if (func_entry->inner_type != expr_node->value_type) {
+    if (return_type != expr_node->value_type) {
         yyerror("{code_generation:generate_func_return_code} Mismatched return types");
         exit(1);
     }
@@ -1029,7 +1115,15 @@ void generate_func_return_code(ast_node_t* node, int* num_used_regs, local_symbo
 }
 
 
-void generate_statement_structure(ast_node_t* node, int* num_used_regs, local_symbol_table_t* l_symbol_table, label_index_t* break_label, label_index_t* continue_label, global_symbol_table_t* func_entry) {
+void generate_statement_structure(
+    ast_node_t* node, 
+    int* num_used_regs, 
+    local_symbol_table_t* l_symbol_table, 
+    label_index_t* break_label, 
+    label_index_t* continue_label, 
+    global_symbol_table_t* func_entry,
+    class_method_t* method_entry
+) {
     if (!node)
         return;
     if (break_label && node->node_type == NODE_TYPE_BREAK) {
@@ -1039,8 +1133,8 @@ void generate_statement_structure(ast_node_t* node, int* num_used_regs, local_sy
         jump_to_label(*continue_label);
     }
     if (node->node_type == NODE_TYPE_CONNECTOR) {
-        generate_statement_structure(node->left, num_used_regs, l_symbol_table, break_label, continue_label, func_entry);
-        generate_statement_structure(node->right, num_used_regs, l_symbol_table, break_label, continue_label, func_entry);
+        generate_statement_structure(node->left, num_used_regs, l_symbol_table, break_label, continue_label, func_entry, method_entry);
+        generate_statement_structure(node->right, num_used_regs, l_symbol_table, break_label, continue_label, func_entry, method_entry);
     }
     else if (node->node_type == NODE_TYPE_WRITE) {
         reg_index_t ret_val = generate_print_code(node, num_used_regs, l_symbol_table);
@@ -1057,22 +1151,22 @@ void generate_statement_structure(ast_node_t* node, int* num_used_regs, local_sy
         generate_ptr_assignment_code(node, num_used_regs, l_symbol_table);
     }
     else if (node->node_type == NODE_TYPE_IF) {
-        generate_if_code(node, num_used_regs, break_label, continue_label, l_symbol_table, func_entry);
+        generate_if_code(node, num_used_regs, break_label, continue_label, l_symbol_table, func_entry, method_entry);
     }
     else if (node->node_type == NODE_TYPE_IFELSE) {
-        generate_ifelse_code(node, num_used_regs, break_label, continue_label, l_symbol_table, func_entry);
+        generate_ifelse_code(node, num_used_regs, break_label, continue_label, l_symbol_table, func_entry, method_entry);
     }
     else if (node->node_type == NODE_TYPE_WHILE) {
-        generate_while_code(node, num_used_regs, l_symbol_table, func_entry);
+        generate_while_code(node, num_used_regs, l_symbol_table, func_entry, method_entry);
     }
     else if (node->node_type == NODE_TYPE_DO_WHILE) {
-        generate_do_while_code(node, num_used_regs, l_symbol_table, func_entry);
+        generate_do_while_code(node, num_used_regs, l_symbol_table, func_entry, method_entry);
     }
     else if (node->node_type == NODE_TYPE_REPEAT) {
-        generate_repeat_code(node, num_used_regs, l_symbol_table, func_entry);
+        generate_repeat_code(node, num_used_regs, l_symbol_table, func_entry, method_entry);
     }
     else if (node->node_type == NODE_TYPE_FUNC_RET) {
-        generate_func_return_code(node, num_used_regs, l_symbol_table, func_entry);
+        generate_func_return_code(node, num_used_regs, l_symbol_table, func_entry, method_entry);
     }
     else if (node->node_type == NODE_TYPE_FUNC_CALL) {
         reg_index_t ret_val_reg = generate_func_call_code(node, num_used_regs, l_symbol_table);
@@ -1242,4 +1336,5 @@ void generate_program(ast_node_t* body) {
     exit_program(free_registers);
 
     generate_program_structure(body);
+    generate_class_code();
 }

@@ -1,5 +1,6 @@
 #include "type_table.h"
 
+#include "../class_table/class_table.h"
 
 
 field_list_t* create_field_list_entry(char* name, type_table_t* struct_name, type_table_t* field_type) {
@@ -76,6 +77,16 @@ type_table_t* create_type_table_entry(char* name, int size, decl_node_t* fields,
     }
     
     return entry;
+}
+
+type_table_t* create_class_type_entry(class_table_t* details) {
+    type_table_t* entry = (type_table_t*) malloc(sizeof(type_table_t));
+
+    entry->fields = NULL;
+    entry->name = strdup(details->name);
+    entry->next = NULL;
+    entry->size = 0;
+    entry->type = VAR_TYPE_CLASS;
 }
 
 

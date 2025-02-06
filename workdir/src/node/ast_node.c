@@ -259,6 +259,13 @@ ast_node_t* create_continue_node() {
     return node;
 }
 
+
+ast_node_t* create_self_node() {
+    node_value_t data;
+    ast_node_t* node = create_node(data, default_types->unset_type, NODE_TYPE_SELF, NULL, NULL, NULL);
+    return node;
+}
+
 void destroy_node(ast_node_t* node) {
     if (node->left)
         destroy_node(node->left);
