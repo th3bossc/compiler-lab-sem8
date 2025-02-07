@@ -1,0 +1,68 @@
+class
+    Employee {
+        decl 
+            str name;
+            int age;
+            int salary;
+            int printDetails();
+            int init(str name, int age, int salary);
+        enddecl
+
+        int printDetails() {
+            begin
+                write("name:");
+                write(self.name);
+                write("salary:");
+                write(self.salary);
+                write("age:");
+                write(self.age);
+
+                return 0;
+            end
+        }
+
+        int init(str name, int age, int salary) {
+            begin
+                self.name = name;
+                self.age = age;
+                self.salary = salary;
+                return 0;
+            end
+        }
+    }
+endclass
+
+decl 
+    Employee createNewEmployee(Employee e);
+enddecl
+
+
+Employee createNewEmployee(Employee e) {
+    decl 
+        Employee temp;
+    enddecl
+
+    begin
+        e.printDetails();
+        temp = new(Employee);
+        temp.init("New Guy", 50, 34000);
+        return temp;
+    end
+}
+
+
+int main() {
+    decl 
+        Employee john, newEmployee;
+    enddecl 
+
+    begin 
+        initialize();
+        john = new(Employee);
+        john.init("John", 5, 5000);
+
+        newEmployee = createNewEmployee(john);
+        newEmployee.printDetails();
+        return 0;
+    end
+}
