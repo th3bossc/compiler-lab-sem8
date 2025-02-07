@@ -21,9 +21,10 @@ struct class_table_s {
 
 class_table_t* class_table;
 
-class_table_t* create_class_table_entry(char* name, class_decl_node_t* decl_list, class_decl_node_t* method_list, class_table_t* parent_class);
+class_table_t* create_class_table_entry(char* name, class_decl_node_t* decl_list, class_decl_node_t* method_list, char* parent_class);
 void destroy_class_table_entry(class_table_t* entry);
 class_table_t* class_table_lookup(char* name);
+bool is_descendant_of(class_table_t* parent, class_table_t* child);
 
 void initialize_class_table();
 

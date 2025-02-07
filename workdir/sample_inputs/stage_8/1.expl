@@ -1,0 +1,65 @@
+class
+    Person {
+        decl 
+            str name;
+            int age;
+            int printDetails();
+            int create(str name, int age);
+        enddecl
+
+        int printDetails() {
+            begin
+                write("Person");
+                write(self.name);
+                write(self.age);
+                return 0;
+            end
+        }
+
+        int create(str name, int age) {
+            begin
+                self.name = name;
+                self.age = age;
+                return 0;
+            end
+        }
+    }
+
+    Student extends Person {
+        decl 
+            int printDetails();
+        enddecl
+
+        int printDetails() {
+            begin
+                write("Student");
+                write(self.name);
+                write(self.age);
+                return 0;
+            end
+        }
+    }
+endclass
+
+decl 
+    Person a;
+    Student b;
+enddecl
+
+
+int main() {
+    begin 
+        initialize();
+
+        a = new(Person);
+        b = new(Student);
+
+        a.create("hi", 5);
+        a.printDetails();
+
+        b.create("hii", 10);
+        b.printDetails();
+
+        return 0;
+    end
+}

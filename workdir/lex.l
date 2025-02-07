@@ -89,6 +89,7 @@ OR { return OR; }
 null { return NULLPTR; }
 
 new { return NEW; }
+extends { return EXTENDS; }
 
 
 ">" { return GT; }

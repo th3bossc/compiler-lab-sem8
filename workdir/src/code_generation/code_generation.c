@@ -1,5 +1,4 @@
 #include "code_generation.h"
-// #include "../class_table/class_table.h"
 
 type_table_t* is_type_compatible(type_table_t* type1, type_table_t* type2) {
     if ((is_user_defined_type(type1) || is_class(type1)) && (type2 == default_types->int_type)) 
@@ -112,7 +111,7 @@ reg_index_t generate_id_expr_code(ast_node_t* node) {
 }
 
 reg_index_t generate_expression_code(ast_node_t* node) {
-    if (!node) {
+    if (node == NULL) {
         yyerror("{code_generation:generate_expression_code} Something weong wrong");
         exit(1);
     }
@@ -147,9 +146,6 @@ reg_index_t generate_expression_code(ast_node_t* node) {
     }
     else if (node->node_type == NODE_TYPE_CLASS_METHOD) {
         return generate_class_method_call_code(node);
-    }
-    else if (node->node_type == NODE_TYPE_CONSTRUCTOR) {
-        return generate_class_constructor_code(node);
     }
 
     if (node->value_type == default_types->int_type || node->value_type == default_types->ptr_type) {
@@ -523,7 +519,6 @@ reg_index_t generate_init_heap_code() {
 }
 
 reg_index_t generate_alloc_code() {
-    function_metadata_t* record = function_metdata_current();
     return alloc_memory(8);
 }
 
@@ -631,15 +626,6 @@ reg_index_t generate_class_method_call_code(ast_node_t* node) {
     return ret_val;
 }
 
-reg_index_t generate_class_constructor_code(ast_node_t* node) {
-    if (!node) {
-        yyerror("{code_generation:generate_class_constructor_code} Something went wrong");
-    }
-
-    reg_index_t addr = generate_alloc_code();
-    return addr;
-}
-
 
 void generate_assignment_code(ast_node_t* node) {
     function_metadata_t* record = function_metdata_current();
@@ -648,6 +634,9 @@ void generate_assignment_code(ast_node_t* node) {
         exit(1);
     }
 
+    if (node->right->node_type == NODE_TYPE_CONSTRUCTOR) {
+        return generate_class_constructor_code(node);
+    }
 
     if (node->left->node_type == NODE_TYPE_ARR_INDEX) {
         return generate_arr_assignment_code(node);
@@ -690,6 +679,129 @@ void generate_assignment_code(ast_node_t* node) {
         free_used_register(record->num_used_regs, free_reg);
         free_used_register(record->num_used_regs, expr_output);
     }
+}
+ 
+void generate_class_constructor_code(ast_node_t* node) {
+    function_metadata_t* record = function_metdata_current();
+    if (!node || !(node->left) || !(node->right)) {
+        yyerror("{code_generation:generate_class_constructor_code} Something went wrong");
+        exit(1);
+    }
+
+    class_table_t* class_details = class_table_lookup(node->right->data.s_val);
+    reg_index_t field_block = generate_alloc_code();
+    reg_index_t func_block = generate_alloc_code();
+    
+    if (node->left->node_type == NODE_TYPE_TUPLE_FIELD) {
+        ast_node_t* id_node = node->left;
+
+        reg_index_t id_addr = generate_expression_code(id_node->left);
+        type_table_t* id_type = id_node->left->value_type;
+        if (!is_user_defined_type(id_type) && !is_class(id_type)) {
+            yyerror("{code_generation:generate_class_constructor_code} '.' operator is only permitted on user defined types");
+            exit(1);
+        }
+
+        if (is_user_defined_type(id_type)) {
+            ast_node_t* field_node = id_node->right;
+            field_list_t* field_info = field_lookup(id_type, field_node->data.s_val);
+            if (field_info == NULL) {
+                yyerror("{code_generation:generate_tuple_field_assignment_code} field doesn't exist on type");
+                exit(1);
+            }
+            type_table_t* field_type = field_info->type;
+            field_node->value_type = field_type;
+            id_node->value_type = field_type;
+            reg_index_t field_index_reg = get_free_register(record->num_used_regs);
+            immediate_addressing_int(field_index_reg, field_info->field_index);
+            add_registers(id_addr, field_index_reg);
+            free_used_register(record->num_used_regs, field_index_reg);
+
+            if (!is_class(field_type)) {
+                yyerror("{code_generation:generate_class_constructor_code} 'new' operator can only be used on an instance of a class");
+                exit(1);
+            }
+
+            if (!is_descendant_of(field_type->class_details, class_details)) {
+                yyerror("{code_generation:generate_class_constructor_code} Type mismatch");
+                exit(1);
+            }
+
+            register_indirect_addressing_store(id_addr, field_block);
+            incr_register(id_addr);
+            register_indirect_addressing_store(id_addr, func_block);
+
+            free_used_register(record->num_used_regs, id_addr);
+        }
+        else {
+            ast_node_t* field_node = id_node->right;
+            class_field_t* field_info = class_field_lookup(id_type->class_details, field_node->data.s_val);
+            if (field_info == NULL) {
+                yyerror("{code_generation:generate_class_constructor_code} field doesn't exist on type");
+                exit(1);
+            }
+
+            type_table_t* field_type = field_info->type;
+            field_node->value_type = field_type;
+            id_node->value_type = field_type;
+            
+
+            reg_index_t field_index_reg = get_free_register(record->num_used_regs);
+            immediate_addressing_int(field_index_reg, field_info->field_index);
+            add_registers(id_addr, field_index_reg);
+            free_used_register(record->num_used_regs, field_index_reg);
+
+            if (!is_class(field_type)) {
+                yyerror("{code_generation:generate_class_constructor_code} 'new' operator can only be used on an instance of a class");
+                exit(1);
+            }
+
+            if (!is_descendant_of(field_type->class_details, class_details)) {
+                yyerror("{code_generation:generate_class_constructor_code} Type mismatch");
+                exit(1);
+            }
+
+            register_indirect_addressing_store(id_addr, field_block);
+            incr_register(id_addr);
+            register_indirect_addressing_store(id_addr, func_block);
+
+            free_used_register(record->num_used_regs, id_addr);
+        }
+
+    }
+    else {
+        ast_node_t* id_node = node->left;
+        type_table_t* id_type = get_var_type(id_node->data.s_val, record->l_symbol_table);
+        id_node->value_type = id_type;
+        if (class_details == NULL) {
+            yyerror("{code_generation:generate_class_constructor_code} Class doesn't exist");
+            exit(1);
+        }
+
+        if (!is_class(id_type)) {
+            yyerror("{code_generation:generate_class_constructor_code} 'new' operator can only be used on an instance of a class");
+            exit(1);
+        }
+
+        if (!is_descendant_of(id_type->class_details, class_details)) {
+            yyerror("{code_generation:generate_class_constructor_code} Type mismatch");
+            exit(1);
+        }
+
+        reg_index_t free_reg = load_var_addr_to_reg(id_node->data.s_val, -1);
+        register_indirect_addressing_store(free_reg, field_block);
+        incr_register(free_reg);
+        register_indirect_addressing_store(free_reg, func_block);
+
+
+        free_used_register(record->num_used_regs, free_reg);
+    }
+
+
+
+
+    free_used_register(record->num_used_regs, field_block);
+    free_used_register(record->num_used_regs, func_block);
 }
 
 void generate_arr_assignment_code(ast_node_t* node) {
@@ -787,7 +899,7 @@ void generate_tuple_field_assignment_code(ast_node_t* node) {
             exit(1);
         }
         field_node->value_type = field_info->type;
-        id_node->value_type = id_type;
+        id_node->value_type = field_info->type;
         reg_index_t field_index_reg = get_free_register(record->num_used_regs);
         immediate_addressing_int(field_index_reg, field_info->field_index);
         add_registers(id_addr, field_index_reg);
@@ -814,7 +926,7 @@ void generate_tuple_field_assignment_code(ast_node_t* node) {
         }
 
         field_node->value_type = field_info->type;
-        id_node->value_type = id_type;
+        id_node->value_type = field_info->type;
 
         reg_index_t field_index_reg = get_free_register(record->num_used_regs);
         immediate_addressing_int(field_index_reg, field_info->field_index);
@@ -833,8 +945,6 @@ void generate_tuple_field_assignment_code(ast_node_t* node) {
         free_used_register(record->num_used_regs, id_addr);
         free_used_register(record->num_used_regs, expr_output);
     }
-
-
 }
 
 reg_index_t generate_print_code(ast_node_t* node) {
