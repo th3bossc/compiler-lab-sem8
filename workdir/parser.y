@@ -263,7 +263,6 @@ stmt_body   : stmt_assign                       { $<node>$ = $<node>1; }
             | stmt_read                         { $<node>$ = $<node>1; }
             | stmt_write                        { $<node>$ = $<node>1; }
             | stmt_init_heap                    { $<node>$ = $<node>1; }
-            // | stmt_alloc                        { $<node>$ = $<node>1; }
             | stmt_free                         { $<node>$ = $<node>1; }
             | stmt_if                           { $<node>$ = $<node>1; }
             | stmt_while                        { $<node>$ = $<node>1; }
@@ -283,7 +282,6 @@ stmt_assign : ID '=' expr                               { $<node>$ = create_assi
             | ID '[' expr ']' '[' expr ']' '=' expr     { $<node>$ = create_2d_arr_assignment_node($<s_val>1, $<node>3, $<node>6, $<node>9); }
             | '*' ID '=' expr                           { $<node>$ = create_ptr_assignment_node($<s_val>2, $<node>4); }
             | expr PERIOD ID '=' expr                   { $<node>$ = create_tuple_field_assignment_node($<node>1, $<s_val>3, $<node>5); }
-            // | self_field '=' expr                       { $<node>$ = create_self_field_assignment_node($<node>1, $<node>3); }
             ;
 
 stmt_write  : WRITE '(' expr ')'                { $<node>$ = create_write_node($<node>3); }
@@ -337,8 +335,6 @@ expr        : expr '+' expr                     { $<node>$ = create_operator_nod
             | ID '[' expr ']'                   { $<node>$ = create_arr_index_node($<s_val>1, $<node>3); }
             | ID '[' expr ']' '[' expr ']'      { $<node>$ = create_2d_arr_index_node($<s_val>1, $<node>3, $<node>6); }
             | func_call                         { $<node>$ = $<node>1; }
-            // | self_field                        { $<node>$ = $<node>1; }
-            // | self_method                       { $<node>$ = $<node>1; }
             | expr PERIOD ID                    { $<node>$ = create_tuple_field_node($<node>1, $<s_val>3); }
             | expr PERIOD func_call             { $<node>$ = create_class_method_node($<node>1, $<node>3); }
             | stmt_alloc                        { $<node>$ = $<node>1; }
@@ -351,12 +347,6 @@ expr        : expr '+' expr                     { $<node>$ = create_operator_nod
 func_call   : ID '(' ')'                { $<node>$ = create_func_call_node($<s_val>1, NULL); }
             | ID '(' args_list ')'      { $<node>$ = create_func_call_node($<s_val>1, $<args_node>3); }
             ;
-
-// self_field  : SELF PERIOD ID    { $<node>$ = create_self_field_node($<s_val>3); }
-//             ;
-
-// self_method : SELF PERIOD func_call            { $<node>$ = create_self_method_node($<node>3); }
-//             ;
 
 args_list   : args_list COMMA expr              { $<args_node>$ = join_args_nodes($<args_node>1, create_args_node($<node>3)); }
             | expr                              { $<args_node>$ = create_args_node($<node>1); }

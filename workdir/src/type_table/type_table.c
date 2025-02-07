@@ -85,7 +85,7 @@ type_table_t* create_class_type_entry(class_table_t* details) {
     entry->fields = NULL;
     entry->name = strdup(details->name);
     entry->next = NULL;
-    entry->size = 0;
+    entry->size = 1;
     entry->type = VAR_TYPE_CLASS;
     entry->class_details = details;
 

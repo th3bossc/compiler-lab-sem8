@@ -364,6 +364,12 @@ void print_prefix(ast_node_t* node) {
         case NODE_TYPE_FUNC_RET:
             printf("RET ");
             break;
+        case NODE_TYPE_CLASS_METHOD:
+            printf("METHOD ");
+            break;
+        case NODE_TYPE_CONSTRUCTOR:
+            printf("NEW ");
+            break;
     }
 
     print_prefix(node->left);

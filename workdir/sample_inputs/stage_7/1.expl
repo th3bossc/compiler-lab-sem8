@@ -1,9 +1,16 @@
+type
+    test {
+        int abcd;
+    }
+endtype
+
 class 
     Person {
         decl 
             int hi;
             str hii;
             int hello(int i);
+            int print(int i);
             Person test;
         enddecl
 
@@ -14,10 +21,22 @@ class
                     return 0;
                 endif;
 
-                self.test = alloc();
+                self.test = new(Person);
 
                 self.test.hello(i-1);
 
+                write(self.hi);
+                return 0;
+            end
+        }
+        int print(int i) {
+            begin
+                if (i == 0) then
+                    return 0;
+                endif;
+                self.test.print(i-1);
+
+                write(self.hi);
                 return 0;
             end
         }
@@ -26,15 +45,17 @@ endclass
 
 decl 
     Person a;
+    test a, b, c, d;
+
 enddecl
 
 int main() {
     begin 
         initialize();
-
-        a = alloc();
+        write("hello");
+        a = new(Person);
         a.hello(10);
-
+        a.print(10);
         return 0;
     end
 }

@@ -125,8 +125,11 @@ int main(){
             read(val);
         endwhile;
         x = obj.setroot(Root);
-        in = obj.inOrder_fun(obj.getroot());
+        write(" ");
         in = obj.preOrder_fun(obj.getroot());
+        write(" ");
+        in = obj.inOrder_fun(obj.getroot());
+        write(" ");
         in = obj.postOrder_fun(obj.getroot());
         return 0;
     end

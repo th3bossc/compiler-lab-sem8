@@ -1,0 +1,49 @@
+class 
+    Hello1 {
+        decl
+            int hi;
+            int func(int i);
+        enddecl 
+
+        int func(int i) {
+            begin
+                return i+1;
+            end
+        }
+    }
+    Hello {
+        decl 
+            int temp;
+            Hello1 b;
+            int func(int i);
+        enddecl 
+
+        int func(int i) {
+            decl 
+                int x, temp;
+            enddecl
+            begin 
+                self.b = new(Hello1);
+                return 5*self.b.func(i+1);
+            end 
+        }
+    }
+endclass 
+
+
+decl 
+    Hello a;
+enddecl 
+
+int main() {
+    decl 
+        int p, temp;
+    enddecl
+    begin 
+        initialize();
+        a = new(Hello);
+        p = 5 + a.func(5);
+        write(p);
+        return 0;
+    end
+}

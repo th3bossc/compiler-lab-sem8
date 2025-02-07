@@ -100,14 +100,12 @@ reg_index_t generate_id_expr_code(ast_node_t* node) {
     }
 
     type_table_t* id_type = get_var_type(node->data.s_val, record->l_symbol_table);
+    node->value_type = id_type;
     if (is_tuple(id_type)) {
-        node->value_type = id_type;
         reg_index_t id_val = load_var_addr_to_reg(node->data.s_val, -1);
         return id_val;
     }
     else {
-        node->value_type = id_type;
-
         reg_index_t id_val = load_var_data_to_reg(node->data.s_val, -1);
         return id_val;
     }
@@ -337,6 +335,7 @@ reg_index_t generate_arithmetic_code(ast_node_t* node) {
     char op = (node->data).c_val;
     reg_index_t l_val_reg = generate_expression_code(node->left);
     reg_index_t r_val_reg = generate_expression_code(node->right);
+    printf("type1: %d, type2: %d\n", node->left->node_type, node->right->node_type);
     type_table_t* output_type = is_type_compatible(node->left->value_type, node->right->value_type);
     if (output_type == NULL) {
         yyerror("{code_generation:generate_arithmetic_code} Mismatched types");
@@ -606,7 +605,6 @@ reg_index_t generate_class_method_call_code(ast_node_t* node) {
     }
 
     push_register(id_expr);
-    free_used_register(record->num_used_regs, id_expr);
 
 
     if (it1 != NULL || it2 != NULL) {
@@ -624,9 +622,10 @@ reg_index_t generate_class_method_call_code(ast_node_t* node) {
         pop_register(free_reg);
         it1 = it1->next;
     }
+    pop_register(free_reg);
     free_used_register(record->num_used_regs, free_reg);
     restore_machine_state(record->num_used_regs);
-
+    free_used_register(record->num_used_regs, id_expr);
     reg_index_t ret_val = get_free_register(record->num_used_regs);
     register_addressing(ret_val, RESERVED_RETURN_REG);
     return ret_val;
@@ -1238,6 +1237,8 @@ void generate_class_method_code(class_method_t* method) {
         local_symbol_table = append_to_local_table(local_symbol_table, new_entry);
         i++;
     }
+
+    print_prefix(method->func_body);
     
     add_label(func_label);
     fprintf(instr_set_fp, "PUSH BP\n");
