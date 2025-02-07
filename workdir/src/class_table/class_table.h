@@ -16,6 +16,7 @@ struct class_table_s {
     class_table_t* parent_class;
     int num_fields;
     int num_methods;
+    int class_index;
     class_table_t* next;
 };
 

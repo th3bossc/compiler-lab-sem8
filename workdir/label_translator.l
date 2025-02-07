@@ -16,6 +16,7 @@ int get_address(int instr_count);
 %}
 
 label L[0-9]+
+register R[0-9]+
 
 %%
 
@@ -37,8 +38,6 @@ label L[0-9]+
         create_label_node(label, get_address(instr_count));
     }
 }
-
-
 
 (call|CALL)(.*){label}\n  {
     if (line_counting_step) {
@@ -87,6 +86,19 @@ label L[0-9]+
         sscanf(yytext, "%*s R%d, L%d", &reg_no, &label);
         int address = get_label_address(label);
         fprintf(output_path, "JNZ R%d, %d\n", reg_no, address);
+    }
+}
+
+(mov|MOV)(.*){register},(.*){label}\n {
+    if (line_counting_step) {
+        instr_count++;
+    }
+    else {
+        int label;
+        int reg_no;
+        sscanf(yytext, "MOV R%d, L%d", &reg_no, &label);
+        int address = get_label_address(label);
+        fprintf(output_path, "MOV R%d, %d\n", reg_no, address);
     }
 }
 

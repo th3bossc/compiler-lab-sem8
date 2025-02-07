@@ -103,6 +103,8 @@ class_table_t* create_class_table_entry(char* name, class_decl_node_t* decl_list
                     yyerror("{class_table:create_class_table_entry} Redeclared function signature doesn't match parent");
                     exit(1);
                 }
+                
+                parent_method->label = get_label();
             }
             else {
                 class_method_t* method = create_class_method_entry(entry, node->name, return_type, node->params, NULL, NULL, get_label(), entry->num_methods);
@@ -151,7 +153,7 @@ class_table_t* create_class_table_entry(char* name, class_decl_node_t* decl_list
         target_method->local_decls = node->local_decls;
         target_method->func_body = node->func_body;
     }
-
+    get_binding(8);
     return entry;
 }
 
@@ -171,13 +173,17 @@ void destroy_class_table_entry(class_table_t* entry) {
 
 void append_to_class_table(class_table_t* entry) {
     if (class_table == NULL) {
+        entry->class_index = 0;
         class_table = entry;
         return;
     }
     class_table_t* tail = class_table;
-    while(tail->next != NULL)
+    int num_classes = 1;
+    while(tail->next != NULL) {
+        num_classes++;
         tail = tail->next;
-
+    } 
+    entry->class_index = num_classes;
     tail->next = entry;
 }
 

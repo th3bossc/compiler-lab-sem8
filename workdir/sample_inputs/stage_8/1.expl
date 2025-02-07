@@ -28,6 +28,7 @@ class
     Student extends Person {
         decl 
             int printDetails();
+            int student();
         enddecl
 
         int printDetails() {
@@ -38,12 +39,20 @@ class
                 return 0;
             end
         }
+
+        int student() {
+            begin 
+                write("i student");
+                return 0;
+            end
+        }
     }
 endclass
 
 decl 
     Person a;
     Student b;
+    Person c;
 enddecl
 
 
@@ -53,12 +62,18 @@ int main() {
 
         a = new(Person);
         b = new(Student);
-
-        a.create("hi", 5);
+        
+        a.create("hi", 15);
         a.printDetails();
 
         b.create("hii", 10);
         b.printDetails();
+
+
+        c = new(Student);
+        c.create("hiii", 15);
+        c.printDetails();
+
 
         return 0;
     end
