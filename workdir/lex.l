@@ -10,7 +10,7 @@
 %option noyywrap
 %%
 
-[0-9]+ {
+[+-]?[0-9]+ {
     yylval.n_val = atoi(yytext);
     return NUM;
 }

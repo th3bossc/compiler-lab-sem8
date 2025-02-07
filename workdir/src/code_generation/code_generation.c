@@ -13,6 +13,12 @@ type_table_t* is_type_compatible(type_table_t* type1, type_table_t* type2) {
         return type1;
     else if (type1 == default_types->unset_type || type2 == default_types->unset_type)
         return type1;
+    else if (is_class(type1) && is_class(type2)) {
+        if (is_descendant_of(type1->class_details, type2->class_details))
+            return type1;
+        else if (is_descendant_of(type2->class_details, type1->class_details))
+            return type2;
+    }
     return NULL;
 }
 
@@ -641,6 +647,10 @@ reg_index_t generate_class_method_call_code(ast_node_t* node) {
     reg_index_t id_addr = load_class_details(node->left);
     reg_index_t id_expr = get_free_register(record->num_used_regs);
     register_indirect_addressing_load(id_expr, id_addr);
+    reg_index_t virt_func_table_base = get_free_register(record->num_used_regs);
+    register_addressing(virt_func_table_base, id_addr);
+    incr_register(virt_func_table_base);
+    register_indirect_addressing_load(virt_func_table_base, virt_func_table_base);
 
     if (!is_class(node->left->value_type)) {
         yyerror("{code_generation:generate_class_method_call_code} 'ID' not callable");
@@ -689,6 +699,7 @@ reg_index_t generate_class_method_call_code(ast_node_t* node) {
     }
 
     push_register(id_expr);
+    push_register(virt_func_table_base);
 
 
     if (it1 != NULL || it2 != NULL) {
@@ -707,11 +718,13 @@ reg_index_t generate_class_method_call_code(ast_node_t* node) {
         it1 = it1->next;
     }
     pop_register(free_reg);
+    pop_register(free_reg);
     free_used_register(record->num_used_regs, free_reg);
     restore_machine_state(record->num_used_regs);
     free_used_register(record->num_used_regs, id_addr);
     free_used_register(record->num_used_regs, id_expr);
     free_used_register(record->num_used_regs, label_reg);
+    free_used_register(record->num_used_regs, virt_func_table_base);
     reg_index_t ret_val = get_free_register(record->num_used_regs);
     register_addressing(ret_val, RESERVED_RETURN_REG);
     return ret_val;
@@ -762,6 +775,22 @@ void generate_assignment_code(ast_node_t* node) {
         free_used_register(record->num_used_regs, expr_output);
         free_used_register(record->num_used_regs, offset_reg);
         free_used_register(record->num_used_regs, data_to_copy);
+    }
+    else if (is_class(output_type)) {
+        reg_index_t src_class_details = load_class_details(node->right);
+        reg_index_t dest_class_details = load_class_details(node->left);
+        reg_index_t free_reg = get_free_register(record->num_used_regs);
+
+        register_indirect_addressing_load(free_reg, src_class_details);
+        register_indirect_addressing_store(dest_class_details, free_reg);
+        incr_register(src_class_details);
+        incr_register(dest_class_details);
+        register_indirect_addressing_load(free_reg, src_class_details);
+        register_indirect_addressing_store(dest_class_details, free_reg);
+
+        free_used_register(record->num_used_regs, src_class_details);
+        free_used_register(record->num_used_regs, dest_class_details);
+        free_used_register(record->num_used_regs, free_reg);
     }
     else {
         ast_node_t* id_node = node->left;
@@ -1248,7 +1277,7 @@ void generate_function_code(ast_node_t* node) {
             NULL
         );
         local_symbol_table = append_to_local_table(local_symbol_table, new_entry);
-        i++;
+        i += entry->type->size;
     }
 
     int num_params = i-1;
@@ -1263,11 +1292,9 @@ void generate_function_code(ast_node_t* node) {
         );
 
         local_symbol_table = append_to_local_table(local_symbol_table, new_entry);
-        i++;
-
-
-
+        i += entry->type->size;
     }
+
     add_label(func_label);
     fprintf(instr_set_fp, "PUSH BP\n");
     fprintf(instr_set_fp, "MOV BP, SP\n");
@@ -1322,10 +1349,9 @@ void generate_class_method_code(class_method_t* method) {
             NULL
         );
         local_symbol_table = append_to_local_table(local_symbol_table, new_entry);
-        i++;
+        i += entry->type->size;
     }
 
-    int num_params = i;
 
     // creating local decl for 'self' keyword
     local_symbol_table_t* new_entry = create_local_symbol_table_entry(
@@ -1336,8 +1362,8 @@ void generate_class_method_code(class_method_t* method) {
         NULL
     );
     local_symbol_table = append_to_local_table(local_symbol_table, new_entry);
-    int l_symbol_self_entry = i-1;
-    i++;
+    i += 2;
+    int num_params = i-1;
 
     for (decl_node_t* entry = func_local_decls; entry != NULL; entry = entry->next) {
         local_symbol_table_t* new_entry = create_local_symbol_table_entry(
@@ -1349,7 +1375,7 @@ void generate_class_method_code(class_method_t* method) {
         );
 
         local_symbol_table = append_to_local_table(local_symbol_table, new_entry);
-        i++;
+        i += entry->type->size;
     }
 
     print_prefix(method->func_body);

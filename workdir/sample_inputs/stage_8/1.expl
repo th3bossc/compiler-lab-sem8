@@ -20,6 +20,7 @@ class
             begin
                 self.name = name;
                 self.age = age;
+                self.printDetails();
                 return 0;
             end
         }
@@ -64,15 +65,11 @@ int main() {
         b = new(Student);
         
         a.create("hi", 15);
-        a.printDetails();
 
         b.create("hii", 10);
-        b.printDetails();
-
 
         c = new(Student);
         c.create("hiii", 15);
-        c.printDetails();
 
 
         return 0;
