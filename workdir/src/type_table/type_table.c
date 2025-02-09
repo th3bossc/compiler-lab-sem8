@@ -8,7 +8,7 @@ field_list_t* create_field_list_entry(char* name, type_table_t* struct_name, typ
     entry->name = strdup(name);
     entry->type = field_type;
     entry->field_index = struct_name->num_fields;
-    struct_name->num_fields++;
+    struct_name->num_fields += field_type->size;
     struct_name->size = struct_name->num_fields;
 
 
@@ -75,7 +75,6 @@ type_table_t* create_type_table_entry(char* name, int size, decl_node_t* fields,
             create_field_list_entry(it->name, entry, it->type);
         }
     }
-    
     return entry;
 }
 
@@ -144,6 +143,7 @@ type_table_t* create_user_type_entry(char* name, decl_node_t* fields) {
         create_field_list_entry(field->name, entry, field_type);
     }
 
+    entry->size = 1;
     if (entry->num_fields > 8) {
         yyerror("{type_table:create_user_type_entry} User defined types can't have more than 8 fields");
         exit(1);
@@ -190,7 +190,7 @@ bool is_primitive_type(type_table_t* type) {
 }
 
 bool is_user_defined_type(type_table_t* type) {
-    return (type->type == VAR_TYPE_CUSTOM);
+    return (type->type == VAR_TYPE_CUSTOM) || (type->type == VAR_TYPE_TUPLE);
 }
 
 bool is_tuple(type_table_t* type) {

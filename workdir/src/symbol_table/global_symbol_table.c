@@ -37,10 +37,7 @@ global_symbol_table_t* create_global_symbol_table_entry(char* name, type_table_t
         exit(1);
     }
 
-    int size = is_user_defined_type(type)
-        ? 1
-        : type->size;
-
+    int size = type->size;
 
     global_symbol_table_t* entry = create_entry(
         name,
@@ -78,7 +75,7 @@ global_symbol_table_t* create_global_symbol_table_array_entry(char* name, type_t
         outer_size,
         inner_size,
         inner_type,
-        get_binding(outer_size*inner_size),
+        get_binding(outer_size*inner_size*inner_type->size),
         NULL
     );
 

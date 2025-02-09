@@ -1,0 +1,71 @@
+class
+    Person {
+        decl 
+            int age;
+            str name;
+            void init(str name, int age);
+            Person child;
+            void printDetails();
+            void addChild(str name, int age);
+        enddecl 
+
+        void init(str name, int age) {
+            begin
+                self.name = name;
+                self.age = age;
+                return;
+            end
+        }
+
+        void printDetails() {
+            begin 
+                write("Person");
+                write(self.name);
+                write(self.age);
+                write("===");
+                if (self.child != null) then
+                    self.child.printDetails();
+                endif;
+                return;
+            end
+        }
+
+        void addChild(str name, int age) {
+            begin
+                self.child = new(Person);
+                self.child.init(name, age);
+                return;
+            end
+        }
+    }
+endclass
+
+
+decl
+    tuple Employee(int salary, Person details) john;
+    Person people[100];
+enddecl 
+
+
+int main() {
+    decl
+        int i;
+    enddecl
+    begin
+        initialize();
+        i = 0;
+        while(i < 100) do
+            people[i] = new(Person);
+            people[i].init("person", i+5);
+            i = i+1;
+        endwhile;
+
+        
+        i = 0;
+        while(i < 100) do
+            people[i].printDetails();
+            i = i+1;
+        endwhile;
+        return 0;
+    end
+}

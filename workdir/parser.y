@@ -215,6 +215,7 @@ tuple_field_element : tuple_field_type  ID  { $<decl_node>$ = create_decl_node($
 
 tuple_field_type    : INT   { tuple_field_type_entry = default_types->int_type; }
                     | STR   { tuple_field_type_entry = default_types->str_type; }
+                    | ID    { tuple_field_type_entry = get_type_table_entry($<s_val>1); }
                     ;
 
 ret_type    : INT           { return_type_entry = default_types->int_type; }
@@ -322,6 +323,7 @@ expr        : expr '+' expr                     { $<node>$ = create_operator_nod
             | expr '%' expr                     { $<node>$ = create_operator_node($<c_val>2, $<node>1, $<node>3); }
             | '(' expr ')'                      { $<node>$ = $<node>2; }
             | NUM                               { $<node>$ = create_num_node($<n_val>1); }
+            | '-' expr                          { $<node>$ = create_operator_node($<c_val>1, create_num_node(0), $<node>2); }
             | ID                                { $<node>$ = create_id_node($<s_val>1); }
             | expr GT expr                      { $<node>$ = create_relop_node(">", $<node>1, $<node>3); }
             | expr LT expr                      { $<node>$ = create_relop_node("<", $<node>1, $<node>3); }

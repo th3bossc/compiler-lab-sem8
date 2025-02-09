@@ -104,7 +104,7 @@ reg_index_t load_class_details(ast_node_t* id_node) {
         reg_index_t id_addr = generate_expression_code(id_node->left);
         type_table_t* id_type = id_node->left->value_type;
         if (!is_user_defined_type(id_type) && !is_class(id_type)) {
-            yyerror("{code_generation:load_class_func_table} '.' operator is only permitted on user defined types");
+            yyerror("{code_generation:load_class_details} '.' operator is only permitted on user defined types");
             exit(1);
         }
 
@@ -112,7 +112,7 @@ reg_index_t load_class_details(ast_node_t* id_node) {
             ast_node_t* field_node = id_node->right;
             field_list_t* field_info = field_lookup(id_type, field_node->data.s_val);
             if (field_info == NULL) {
-                yyerror("{code_generation:load_class_func_table} field doesn't exist on type");
+                yyerror("{code_generation:load_class_details} field doesn't exist on type");
                 exit(1);
             }
             type_table_t* field_type = field_info->type;
@@ -125,7 +125,7 @@ reg_index_t load_class_details(ast_node_t* id_node) {
 
 
             if (!is_class(field_type)) {
-                yyerror("{code_generation:load_class_func_table} 'new' operator can only be used on an instance of a class");
+                yyerror("{code_generation:load_class_details} 'new' operator can only be used on an instance of a class");
                 exit(1);
             }
 
@@ -156,6 +156,31 @@ reg_index_t load_class_details(ast_node_t* id_node) {
 
             return id_addr;
         }
+    }
+    else if (id_node->node_type == NODE_TYPE_ARR_INDEX) {
+        ast_node_t* arr_node = id_node->left;
+        arr_node->value_type = get_var_type(arr_node->data.s_val, record->l_symbol_table);
+        if ((arr_node->node_type != NODE_TYPE_ID) || (arr_node->value_type != default_types->arr_type)) {
+            yyerror("{code_generation:generate_arr_assignment_code}: indexing can only be done on arrays");
+            exit(1);
+        }
+
+        ast_node_t* index_node = id_node->right;
+        reg_index_t index_output = generate_expression_code(index_node);
+        if (index_node->value_type != default_types->int_type) {
+            yyerror("{code_generation:generate_arr_assignment_code}: arr index should be an int value");
+            exit(1);
+        }
+
+        id_node->value_type = get_var_inner_type(arr_node->data.s_val, record->l_symbol_table);
+        mul_immediate(index_output, id_node->value_type->size);
+        if (!is_class(id_node->value_type)) {
+            yyerror("{code_generation:load_class_details} Type mismatch");
+            exit(1);
+        }
+        reg_index_t arr_index_loc = load_var_addr_to_reg(arr_node->data.s_val, index_output);
+        free_used_register(record->num_used_regs, index_output);
+        return arr_index_loc;
     }
     else {
         type_table_t* id_type = get_var_type(id_node->data.s_val, record->l_symbol_table);
@@ -376,6 +401,7 @@ reg_index_t generate_arr_index_code(ast_node_t* node) {
         yyerror("{code_generation:generate_arr_index_code}: indexing can only be done on arrays");
         exit(1);
     }
+    node->value_type = get_var_inner_type(id_node->data.s_val, record->l_symbol_table);
 
     ast_node_t* index_node = node->right;
     reg_index_t expr_output = generate_expression_code(index_node);
@@ -384,7 +410,7 @@ reg_index_t generate_arr_index_code(ast_node_t* node) {
         exit(1);
     }
 
-    node->value_type = get_var_inner_type(id_node->data.s_val, record->l_symbol_table);
+    mul_immediate(expr_output, node->value_type->size);
     reg_index_t arr_data = load_var_data_to_reg(id_node->data.s_val, expr_output);
     free_used_register(record->num_used_regs, expr_output);
     return arr_data;
@@ -510,7 +536,7 @@ reg_index_t generate_tuple_index_code(ast_node_t* node) {
     reg_index_t id_addr = generate_expression_code(node->left);
     type_table_t* id_type = node->left->value_type;
 
-    if (!is_user_defined_type(id_type) && !is_tuple(id_type) && !is_class(id_type)) {
+    if (!is_user_defined_type(id_type) && !is_class(id_type)) {
         yyerror("{code_generation:generate_tuple_index_code} '.' operator can only be used on user defined types");
         exit(1);
     }
@@ -651,7 +677,6 @@ reg_index_t generate_class_method_call_code(ast_node_t* node) {
     register_addressing(virt_func_table_base, id_addr);
     incr_register(virt_func_table_base);
     register_indirect_addressing_load(virt_func_table_base, virt_func_table_base);
-
     if (!is_class(node->left->value_type)) {
         yyerror("{code_generation:generate_class_method_call_code} 'ID' not callable");
         exit(1);
@@ -814,7 +839,6 @@ void generate_class_constructor_code(ast_node_t* node) {
         exit(1);
     }
     reg_index_t field_block = generate_alloc_code();
-
     reg_index_t field_addr = load_class_details(node->left);
 
     if (!is_descendant_of(node->left->value_type->class_details, class_details)) {
@@ -831,7 +855,6 @@ void generate_class_constructor_code(ast_node_t* node) {
     immediate_addressing_int(func_table_reg, virt_func_table);
 
     register_indirect_addressing_store(field_addr, func_table_reg);
-
     free_used_register(record->num_used_regs, field_block);
     free_used_register(record->num_used_regs, field_addr);
     free_used_register(record->num_used_regs, func_table_reg);
@@ -861,6 +884,7 @@ void generate_arr_assignment_code(ast_node_t* node) {
 
     arr_index_node->value_type = get_var_inner_type(id_node->data.s_val, record->l_symbol_table);
     reg_index_t expr_output = generate_expression_code(node->right);
+    mul_immediate(index_output, arr_index_node->value_type->size);
     reg_index_t arr_index_loc = load_var_addr_to_reg(id_node->data.s_val, index_output);
     
     type_table_t* output_type = is_type_compatible(node->left->value_type, node->right->value_type);
@@ -945,8 +969,32 @@ void generate_tuple_field_assignment_code(ast_node_t* node) {
             exit(1);
         }
         node->value_type = default_types->void_type;
+        if (output_type->size == 1 || is_primitive_type(output_type)) {
+            register_indirect_addressing_store(id_addr, expr_output);
+        }
+        else {
+            if (!is_class(output_type)) {
+                for (int i = 0; i < output_type->size; i++) {
+                    register_indirect_addressing_store(id_addr, expr_output);
+                    incr_register(id_addr);
+                    incr_register(expr_output);
+                }
+            }
+            else {
+                reg_index_t src_class_details = load_class_details(expr_node);
+                reg_index_t free_reg = get_free_register(record->num_used_regs);
 
-        register_indirect_addressing_store(id_addr, expr_output);
+                register_indirect_addressing_load(free_reg, src_class_details);
+                register_indirect_addressing_store(id_addr, free_reg);
+                incr_register(id_addr);
+                incr_register(src_class_details);
+                register_indirect_addressing_load(free_reg, src_class_details);
+                register_indirect_addressing_store(id_addr, free_reg);
+
+                free_used_register(record->num_used_regs, src_class_details);
+                free_used_register(record->num_used_regs, free_reg);
+            }
+        }
         free_used_register(record->num_used_regs, id_addr);
         free_used_register(record->num_used_regs, expr_output);
     }
