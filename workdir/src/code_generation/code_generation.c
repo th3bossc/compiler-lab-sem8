@@ -683,7 +683,7 @@ reg_index_t generate_class_method_call_code(ast_node_t* node) {
     }
 
     class_table_t* class_details = node->left->value_type->class_details;
-    class_method_t* method_entry = class_method_lookup(class_details, node->right->data.s_val);
+    class_method_t* method_entry = class_method_lookup(class_details, node->right->data.s_val, count_num_args(node->right->args_list));
     if (method_entry == NULL) {
         yyerror("{code_generation:generate_class_method_call_code} Method doesn't exist on class");
         exit(1);

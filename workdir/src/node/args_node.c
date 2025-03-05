@@ -24,6 +24,17 @@ args_node_t* join_args_nodes(args_node_t* node1, args_node_t* node2) {
     return node1;
 }
 
+int count_num_args(args_node_t* args) {
+    args_node_t* it = args;
+    int count = 0;
+    while(it != NULL) {
+        count++;
+        it = it->next;
+    }
+
+    return count;
+}
+
 
 void destroy_args_node(args_node_t* node) {
     if (node->next != NULL) {

@@ -97,11 +97,28 @@ class_table_t* create_class_table_entry(char* name, class_decl_node_t* decl_list
                 exit(1);
             }
 
-            class_method_t* parent_method = class_method_lookup(entry, node->name);
+            class_method_t* parent_method = class_method_lookup(entry, node->name, -1);
             if (parent_method != NULL) {
                 if ((parent_method->return_type != return_type) || !verify_params_list(parent_method->params, node->params))  {
-                    yyerror("{class_table:create_class_table_entry} Redeclared function signature doesn't match parent");
-                    exit(1);
+                    // yyerror("{class_table:create_class_table_entry} Redeclared function signature doesn't match parent");
+                    // exit(1);
+                    
+                    if (count_num_params(parent_method->params) == count_num_params(node->params)) {
+                        yyerror("{class_table:create_class_table_entry} Overloaded functions should differ by number of arguments");
+                        exit(1);
+                    }
+
+                    class_method_t* method = create_class_method_entry(entry, node->name, return_type, node->params, NULL, NULL, get_label(), entry->num_methods);
+
+                    if (method_tail == NULL) {
+                        method_tail = method;
+                        entry->methods = method_tail;
+                    }
+                    else {
+                        method_tail->next = method;
+                        method_tail = method;
+                    }
+                    entry->num_methods++;
                 }
                 
                 parent_method->label = get_label();
@@ -128,7 +145,7 @@ class_table_t* create_class_table_entry(char* name, class_decl_node_t* decl_list
     }
 
     for (class_decl_node_t* node = method_list; node != NULL; node = node->next) {
-        class_method_t* target_method = class_method_lookup(entry, node->name);
+        class_method_t* target_method = class_method_lookup(entry, node->name, count_num_params(node->params));
         if (target_method == NULL) {
             yyerror("{class_table:create_class_table_entry} Method doesn't exist on class");
             exit(1);
@@ -136,7 +153,7 @@ class_table_t* create_class_table_entry(char* name, class_decl_node_t* decl_list
 
         type_table_t* return_type = get_type_table_entry(node->undeclared_type);
         if (return_type == NULL) {
-            yyerror("{class_table:create_class_table_entry} Field type doesn't exist");
+            yyerror("{class_table:create_class_table_entry} Field type doesn't exist or method doesn't match any possible overloads");
             exit(1);
         }
         if (return_type != target_method->return_type) {

@@ -20,6 +20,7 @@ decl_node_t* create_decl_node(char* name, type_table_t* type, type_table_t* inne
 decl_node_t* create_user_type_decl_node(char* name, char* type);
 decl_node_t* join_decl_nodes(decl_node_t* node1, decl_node_t* node2);
 bool verify_params_list(decl_node_t* params_list1, decl_node_t* params_list2);
+int count_num_params(decl_node_t* params);
 void destroy_decl_node(decl_node_t* head);
 
 

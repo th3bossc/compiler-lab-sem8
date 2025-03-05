@@ -20,7 +20,7 @@ struct args_node_s {
 args_node_t* create_args_node(ast_node_t* expr_node);
 args_node_t* join_args_nodes(args_node_t* node1, args_node_t* node2);
 void destroy_args_node(args_node_t* node);
-
+int count_num_args(args_node_t* args);
 
 
 #endif

@@ -57,6 +57,17 @@ bool verify_params_list(decl_node_t* params_list1, decl_node_t* params_list2) {
     return true;
 }
 
+int count_num_params(decl_node_t* params) {
+    decl_node_t* it = params;
+    int count = 0;
+    while(it != NULL) {
+        count++;
+        it = it->next;
+    }
+
+    return count;
+}
+
 void destroy_decl_node(decl_node_t* head) {
     if (head->next != NULL) {
         destroy_decl_node(head->next);
