@@ -5,8 +5,11 @@
 #include <string.h>
 #include <stdbool.h>
 
+#include "args_node.h"
+
 typedef struct decl_node_s decl_node_t;
 typedef struct type_table_s type_table_t;
+
 
 struct decl_node_s {
     char* name;
@@ -22,6 +25,8 @@ decl_node_t* join_decl_nodes(decl_node_t* node1, decl_node_t* node2);
 bool verify_params_list(decl_node_t* params_list1, decl_node_t* params_list2);
 int count_num_params(decl_node_t* params);
 void destroy_decl_node(decl_node_t* head);
+
+bool verify_args_match_params(decl_node_t* params, args_node_t* args);
 
 
 #endif

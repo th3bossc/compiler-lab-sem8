@@ -683,9 +683,20 @@ reg_index_t generate_class_method_call_code(ast_node_t* node) {
     }
 
     class_table_t* class_details = node->left->value_type->class_details;
-    class_method_t* method_entry = class_method_lookup(class_details, node->right->data.s_val, count_num_args(node->right->args_list));
+
+    args_node_t* it2 = node->right->args_list;
+    int num_args = count_num_args(it2);
+    reg_index_t values[num_args];
+
+    for (int i = 0; i < num_args; i++) {
+        values[i] = generate_expression_code(it2->expr_node);
+        it2 = it2->next;
+    }
+
+
+    class_method_t* method_entry = class_method_lookup_via_args(class_details, node->right->data.s_val, node->right->args_list);
     if (method_entry == NULL) {
-        yyerror("{code_generation:generate_class_method_call_code} Method doesn't exist on class");
+        yyerror("{code_generation:generate_class_method_call_code} Method overload isn't present on class type");
         exit(1);
     }
 
@@ -706,31 +717,36 @@ reg_index_t generate_class_method_call_code(ast_node_t* node) {
     save_machine_state(record->num_used_regs);
 
     decl_node_t* it1 = method_entry->params;
-    args_node_t* it2 = node->right->args_list;
 
-    while(it1 != NULL && it2 != NULL) {
-        reg_index_t arg_expr_output = generate_expression_code(it2->expr_node);
-        if (it1->type != it2->expr_node->value_type) {
-            print_prefix(it2->expr_node);
-            yyerror("{code_generation:generate_class_method_call_code} Type mismatch in calling function");
-            exit(1);
-        }
+    // while(it1 != NULL && it2 != NULL) {
+    //     reg_index_t arg_expr_output = generate_expression_code(it2->expr_node);
+    //     if (it1->type != it2->expr_node->value_type) {
+    //         print_prefix(it2->expr_node);
+    //         yyerror("{code_generation:generate_class_method_call_code} Type mismatch in calling function");
+    //         exit(1);
+    //     }
 
-        push_register(arg_expr_output);
-        free_used_register(record->num_used_regs, arg_expr_output);
+    //     push_register(arg_expr_output);
+    //     free_used_register(record->num_used_regs, arg_expr_output);
 
-        it1 = it1->next;
-        it2 = it2->next;
+    //     it1 = it1->next;
+    //     it2 = it2->next;
+    // }
+
+    for (int i = 0; i < num_args; i++) {
+        reg_index_t args_expr_output = values[i];
+        push_register(args_expr_output);
+        free_used_register(record->num_used_regs, args_expr_output);
     }
 
     push_register(id_expr);
     push_register(virt_func_table_base);
 
 
-    if (it1 != NULL || it2 != NULL) {
-        yyerror("{code_generation:generate_class_method_call_code} Parameter count doesn't match");
-        exit(1);
-    }
+    // if (it1 != NULL || it2 != NULL) {
+    //     yyerror("{code_generation:generate_class_method_call_code} Parameter count doesn't match");
+    //     exit(1);
+    // }
 
     push_register(0);
     fprintf(instr_set_fp, "CALL R%d\n", label_reg);

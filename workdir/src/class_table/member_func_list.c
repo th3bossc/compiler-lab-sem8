@@ -31,11 +31,24 @@ void destroy_class_method_entry(class_method_t* entry) {
 }
 
 
-class_method_t* class_method_lookup(class_table_t* class_name, char* method_name, int num_args) {
+class_method_t* class_method_lookup(class_table_t* class_name, char* method_name, decl_node_t* params) {
 
     for (class_method_t* method = class_name->methods; method != NULL; method = method->next) {
         if (strcmp(method->name, method_name) == 0) {
-            if (num_args == -1 || count_num_params(method->params) == num_args)
+            if (params == NULL || verify_params_list(params, method->params))
+                return method;
+        }
+    }
+
+    return NULL;
+}
+
+
+class_method_t* class_method_lookup_via_args(class_table_t* class_name, char* method_name, args_node_t* args) {
+
+    for (class_method_t* method = class_name->methods; method != NULL; method = method->next) {
+        if (strcmp(method->name, method_name) == 0) {
+            if (verify_args_match_params(method->params, args))
                 return method;
         }
     }

@@ -1,4 +1,5 @@
 #include "decl_node.h"
+#include "ast_node.h"
 decl_node_t* create_decl_node(char* name, type_table_t* type, type_table_t* inner_type) {
     decl_node_t* node = (decl_node_t*) malloc(sizeof(decl_node_t));
 
@@ -52,6 +53,24 @@ bool verify_params_list(decl_node_t* params_list1, decl_node_t* params_list2) {
     }
 
     if (it1 != NULL || it2 != NULL) 
+        return false;
+
+    return true;
+}
+
+bool verify_args_match_params(decl_node_t* params, args_node_t* args) {
+    decl_node_t* decl_it = params;
+    args_node_t* args_it = args;
+    while(decl_it != NULL && args_it != NULL) {
+        if (decl_it->type != args_it->expr_node->value_type) {
+            return false;
+        }
+
+        decl_it = decl_it->next;
+        args_it = args_it->next;
+    }
+
+    if (decl_it != NULL || args_it != NULL)
         return false;
 
     return true;

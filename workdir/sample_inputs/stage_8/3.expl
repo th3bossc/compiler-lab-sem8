@@ -17,6 +17,7 @@ class
     Child extends Parent {
         decl 
             int hello(str greeting);
+            int hello(int somethingelse);
         enddecl 
 
         int hello() {
@@ -33,6 +34,17 @@ class
                 write("child");
                 write("hello");
                 write(greeting);
+                write("=");
+                return 0;
+            end
+        }
+
+        int hello(int somethingelse) {
+            begin
+                write("child");
+                write("hello");
+                write("seomthing");
+                write(somethingelse);
                 write("=");
                 return 0;
             end
@@ -55,6 +67,8 @@ int main() {
         child.hello();
         parent.hello();
         child.hello("hi");
+
+        child.hello(9);
         return 0;
     end
 }

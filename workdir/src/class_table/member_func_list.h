@@ -29,6 +29,7 @@ struct class_method_s {
 
 class_method_t* create_class_method_entry(class_table_t* class_details, char* name, type_table_t* return_type, decl_node_t* params, ast_node_t* func_body, decl_node_t* local_decls, label_index_t label, int method_index);
 void destroy_class_method_entry(class_method_t* entry);
-class_method_t* class_method_lookup(class_table_t* class_name, char* method_name, int num_args);
+class_method_t* class_method_lookup(class_table_t* class_name, char* method_name, decl_node_t* params);
+class_method_t* class_method_lookup_via_args(class_table_t* class_name, char* method_name, args_node_t* args);
 
 #endif
