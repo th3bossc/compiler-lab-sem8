@@ -66,6 +66,11 @@ int main() {
             people[i].printDetails();
             i = i+1;
         endwhile;
+
+        john.details = people[50];
+
+        john.details.printDetails();
+
         return 0;
     end
 }
