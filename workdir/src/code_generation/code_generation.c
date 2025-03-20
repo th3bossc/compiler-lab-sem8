@@ -16,8 +16,6 @@ type_table_t* is_type_compatible(type_table_t* type1, type_table_t* type2) {
     else if (is_class(type1) && is_class(type2)) {
         if (is_descendant_of(type1->class_details, type2->class_details))
             return type1;
-        else if (is_descendant_of(type2->class_details, type1->class_details))
-            return type2;
     }
     return NULL;
 }
@@ -963,7 +961,7 @@ void generate_tuple_field_assignment_code(ast_node_t* node) {
         free_used_register(record->num_used_regs, field_index_reg);
         reg_index_t expr_output = generate_expression_code(expr_node);
 
-        type_table_t* output_type = is_type_compatible(expr_node->value_type, field_node->value_type);
+        type_table_t* output_type = is_type_compatible(field_node->value_type, expr_node->value_type);
         if (output_type == NULL) {
             yyerror("{code_generation:generate_tuple_field_assignment_code} type mismatch");
             exit(1);
@@ -1015,7 +1013,7 @@ void generate_tuple_field_assignment_code(ast_node_t* node) {
         free_used_register(record->num_used_regs, field_index_reg);
         reg_index_t expr_output = generate_expression_code(expr_node);
 
-        type_table_t* output_type = is_type_compatible(expr_node->value_type, field_node->value_type);
+        type_table_t* output_type = is_type_compatible(field_node->value_type, expr_node->value_type);
         if (output_type == NULL) {
             yyerror("{code_generation:generate_tuple_field_assignment_code} type mismatch");
             exit(1);
