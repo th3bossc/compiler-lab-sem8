@@ -16,8 +16,6 @@ type_table_t* is_type_compatible(type_table_t* type1, type_table_t* type2) {
     else if (is_class(type1) && is_class(type2)) {
         if (is_descendant_of(type1->class_details, type2->class_details))
             return type1;
-        else if (is_descendant_of(type2->class_details, type1->class_details))
-            return type2;
     }
     return NULL;
 }
