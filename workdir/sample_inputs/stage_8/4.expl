@@ -1,0 +1,96 @@
+class 
+    A {
+        decl
+            int a;
+            str b;
+
+            void init(int a, str b);
+            void printDetails();
+        enddecl
+
+        void init(int a, str b) {
+            begin 
+                self.a = a;
+                self.b = b;
+                self.printDetails();
+                return;
+            end
+        }
+
+        void printDetails() {
+            begin 
+                write("A");
+                write(self.a);
+                write(self.b);
+                write(" ");
+                return;
+            end 
+        }
+    }
+
+    B extends A {
+        decl
+            void printDetails();
+        enddecl
+
+        void printDetails() {
+            begin 
+                write("B");
+                write(self.a);
+                write(self.b);
+                write(" ");
+                return;
+            end 
+        }
+    }
+
+    C extends B {
+        decl
+            int c;
+            void init(int a, str b, int c);
+            void printDetails();
+        enddecl
+
+        void init(int a, str b, int c) {
+            begin
+                self.a = a;
+                self.b = b;
+                self.c = c;
+                self.printDetails();
+                return;
+            end
+        }
+
+        void printDetails() {
+            begin 
+                write("C");
+                write(self.a);
+                write(self.b);
+                write(self.c);
+                write(" ");
+                return;
+            end 
+        }
+    }
+endclass 
+
+decl 
+    A instanceA;
+    B instanceB;
+    C instanceC;
+enddecl 
+
+
+int main() {
+    begin
+        initialize();
+        instanceA = new(C);
+        instanceB = new(B);
+        instanceC = new(C);
+
+        instanceA.init(5, "a");
+        instanceB.init(6, "b");
+        instanceC.init(7, "c", 7);
+        return 0;
+    end
+}

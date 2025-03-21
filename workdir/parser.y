@@ -97,10 +97,15 @@ class_decl_list : class_decl_list class_decl
 
 
 class_decl  : ID '{' class_field_list class_method_list '}'                 { create_class_table_entry($<s_val>1, $<class_decl_node>3, $<class_decl_node>4, NULL); }
+            | ID '{' class_method_list '}'                                  { create_class_table_entry($<s_val>1, NULL, $<class_decl_node>3, NULL); }
+            | ID '{' class_field_list '}'                                   { create_class_table_entry($<s_val>1, $<class_decl_node>3, NULL, NULL); }
             | ID EXTENDS ID '{' class_field_list class_method_list '}'      { create_class_table_entry($<s_val>1, $<class_decl_node>5, $<class_decl_node>6, $<s_val>3); }
+            | ID EXTENDS ID '{' class_method_list '}'                       { create_class_table_entry($<s_val>1, NULL, $<class_decl_node>5, $<s_val>3); }
+            | ID EXTENDS ID '{' class_field_list '}'                        { create_class_table_entry($<s_val>1, $<class_decl_node>5, NULL, $<s_val>3); }
             ;
 
 class_field_list    : BEGIN_DECL class_fields END_DECL  { $<class_decl_node>$ = $<class_decl_node>2; }
+                    | BEGIN_DECL END_DECL               { $<class_decl_node>$ = NULL; }
                     ;
 
 class_fields    : class_fields class_field      { $<class_decl_node>$ = join_class_decl_nodes($<class_decl_node>1, $<class_decl_node>2); }
